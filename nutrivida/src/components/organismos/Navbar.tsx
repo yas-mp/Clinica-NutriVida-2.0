@@ -24,32 +24,32 @@ function Navbar(){
                         <ul className="navbar-nav mx-auto">
                             
                             <li className="nav-item">
-                                <Link className="nav-link-active"
-                                aria-current="page" to={""}>Nosotros</Link>
+                                <Link className="nav-link active"
+                                aria-current="page" to={"/nosotros"}>Nosotros</Link>
                             </li>
 
                             <li className="nav-item">
-                                <Link className="nav-link-active"
-                                aria-current="page" to={""}>Profesionales</Link>
+                                <Link className="nav-link active"
+                                aria-current="page" to={"/profesionales"}>Profesionales</Link>
                             </li>
 
                             <li className="nav-item">
-                                <Link className="nav-link-active"
-                                aria-current="page" to={""}>Contáctanos</Link>
+                                <Link className="nav-link active"
+                                aria-current="page" to={"/contactanos"}>Contáctanos</Link>
                             </li>
 
                             <li className="nav-item">
-                                <Link className="nav-link-active"
-                                aria-current="page" to={""}>Servicios</Link>
+                                <Link className="nav-link active"
+                                aria-current="page" to={"/servicios"}>Servicios</Link>
                             </li>
 
                             <li className="nav-item">
-                                <Link className="nav-link-active"
-                                aria-current="page" to={""}>Blog</Link>
+                                <Link className="nav-link active"
+                                aria-current="page" to={"/blog"}>Blog</Link>
                             </li>
                         </ul>
                         <div className="d-flex align-items-center">
-                            <Link className="btn btn-succes btn-sm" to={""} style={{borderRadius: '15px'}}
+                            <Link className="btn btn-success btn-sm" to={""} style={{borderRadius: '15px'}}
                             >Mi portal</Link>
                         </div>
                     </div>
