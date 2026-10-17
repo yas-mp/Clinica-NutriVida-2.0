@@ -4,7 +4,7 @@ function Navbar(){
     return(
     <div>     
         <header>    
-            <nav className="navbar navbar-expand-lg navCustom">
+            <nav className="navbar navbar-expand-lg navCustom" data-bs-theme="dark">
                 <div className="container-fluid">
                     <Link className="navbar-brand" to="/">
                     Nutrivida

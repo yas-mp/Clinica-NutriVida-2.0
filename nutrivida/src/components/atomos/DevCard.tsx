@@ -1,6 +1,6 @@
 interface DevCardProps {
-    nombre: string,
-    rol: string
+    nombre: string;
+    rol: string;
 }
 
 function DevCard({nombre, rol} : DevCardProps){

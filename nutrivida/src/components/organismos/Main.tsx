@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import carruselImagen from "../assets/images/carrusel-imagen.jpg";
-import carruselNutri from "../assets/images/carrusel-nutricionista.webp";
+import carruselImagen from "../assets/images/carruselImagen.jpg";
+import carruselNutri from "../assets/images/carruselNutri.webp";
 import imagenIcono1 from "../assets/images/icono1.jpg";
 import imagenIcono2 from "../assets/images/icono2.jpg";
 import imagenIcono3 from "../assets/images/icono3.webp";
