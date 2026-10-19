@@ -1,24 +1,25 @@
 import Input from "../atomos/Input";
 
 type ContrasenaProps = {
-    id?: string;
+    etiqueta?: string;
+    tipo: string;
+    nombre: string;
+    placeHolder?: string;
     valor: string;
-    relleno?: string;
     alCambiar: (valor:string) => void;
 }
 
-function CampoContrasena({id = "clave", valor, relleno="****", alCambiar} : ContrasenaProps){
+function CampoContrasena({etiqueta, tipo, nombre, valor, alCambiar} : ContrasenaProps){
     return(
         <div className="mb-3">
             <label htmlFor="clave" className="form-label fw-bold" >
-                Contraseña:
+                {etiqueta}
                 </label>
                 <Input 
-                tipo="password"
-                id={id}
-                maxLength={4}
+                tipo={tipo}
+                nombre={nombre}
+                placeholder="****"
                 valor={valor}
-                placeholder={relleno}
                 alCambiar={alCambiar}
                 />
         </div>

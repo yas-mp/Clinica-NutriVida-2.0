@@ -35,7 +35,7 @@ function Navbar(){
 
                             <li className="nav-item">
                                 <Link className="nav-link active"
-                                aria-current="page" to={"/contactanos"}>Contáctanos</Link>
+                                aria-current="page" to={"/contacto"}>Contáctanos</Link>
                             </li>
 
                             <li className="nav-item">
@@ -49,7 +49,7 @@ function Navbar(){
                             </li>
                         </ul>
                         <div className="d-flex align-items-center">
-                            <Link className="btn btn-success btn-sm" to={""} style={{borderRadius: '15px'}}
+                            <Link className="btn btn-success btn-sm" to={"/login"} style={{borderRadius: '15px'}}
                             >Mi portal</Link>
                         </div>
                     </div>
