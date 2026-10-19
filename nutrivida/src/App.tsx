@@ -2,6 +2,8 @@ import {Routes, Route} from 'react-router-dom'
 import Navbar from './components/organismos/Navbar'
 import Nosotros from './pages/Nosotros'
 import Inicio from './pages/Inicio';
+import Login from './pages/Login';
+import Contacto from './pages/Contacto';
 
 
 function App(){
@@ -18,6 +20,16 @@ function App(){
         <Route
         path='/nosotros'
         element={<Nosotros/>}
+        />
+
+        <Route
+        path='/login'
+        element={<Login/>}
+        />
+
+        <Route
+        path='/contacto'
+        element={<Contacto/>}
         />
     </Routes>    
 

@@ -1,23 +1,24 @@
 type Props = {
     tipo: string;
     id?: string,
+    className?: string,
     nombre?: string;
     valor: string;
     maxLength?: number | string;
-    placeholder: string;
+    placeholder?: string;
     alCambiar: (valor:string) => void;
 }
 
-function Input({tipo, id,nombre, valor, maxLength, placeholder, alCambiar} : Props){
+function Input({tipo, id,className,nombre, valor, maxLength, placeholder, alCambiar} : Props){
     return(
         <input
         type={tipo}
         id={id}
+        className={className}
         name={nombre}
-        className="form-control"
         value={valor}
-        placeholder={placeholder}
         maxLength={Number(maxLength)}
+        placeholder={placeholder}
         onChange={(e) => alCambiar(e.target.value)}
         >
         </input>

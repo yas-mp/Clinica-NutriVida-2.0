@@ -2,7 +2,7 @@
 interface BotonProps{
     label: string;
     onClick?: () => void;
-    tipo?: "button";
+    tipo?: "button" | "submit";
     className?: string;
 
 }
