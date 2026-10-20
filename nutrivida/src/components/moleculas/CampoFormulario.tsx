@@ -13,7 +13,7 @@ type CampoFormularioProps = {
 function CampoFormulario({etiqueta, tipo, nombre, valor, alCambiar} : CampoFormularioProps){
     return(
         <div className="col-12">
-            <label htmlFor={nombre} className="form-label fw-bold d-block">
+            <label htmlFor={nombre} className="form-label d-block">
                 {etiqueta}
             </label>
             <Input 
@@ -22,6 +22,7 @@ function CampoFormulario({etiqueta, tipo, nombre, valor, alCambiar} : CampoFormu
             nombre={nombre}
             valor={valor}
             alCambiar={alCambiar}
+            
             />
         </div>
     )

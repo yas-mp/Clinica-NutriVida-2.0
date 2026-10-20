@@ -16,7 +16,6 @@ function FormularioContacto(){
             return
         }
 
-
         if(nombre === ""){
             alert("El nombre no debe estar vacío")
             return;
@@ -72,6 +71,7 @@ function FormularioContacto(){
                 valor={comentarios}
                 maxLength={500}
                 alCambiar={setComentarios}
+                
                 />
             </div>
 

@@ -1,4 +1,4 @@
-.navCustom{
+.navbar-custom{
     background-color: rgb(76, 114, 58);
     min-height: 60px;
     box-shadow: 2px 2px 8px rgba(36, 19, 0, 0.2);
@@ -9,11 +9,6 @@
 body.bg-admin {
   background: #ffffff !important;
   background-image: none !important;
-}
-
-.InicioSesion{
-    text-align: right;
-    color: white;
 }
 
 body{
@@ -49,9 +44,6 @@ img{
     margin-top: 0;
 }
 
-main {
-    flex: 1;
-}
 
 footer {
     background-color: rgb(49, 78, 34);
@@ -435,3 +427,23 @@ footer {
   margin-top: auto;
 
 }
+
+.tarjeta-contacto {
+  max-width: 650px; 
+  width: 100%;
+  margin: 40px auto;
+  padding: 40px; 
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08); 
+  border: none;
+}
+
+.form-label {
+  text-align: left !important; 
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 6px;
+}
+
+

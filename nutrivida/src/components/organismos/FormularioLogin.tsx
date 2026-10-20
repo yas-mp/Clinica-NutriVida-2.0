@@ -30,7 +30,6 @@ function FormularioInicioSesion(){
             alert("La contraseña debe tener exactamente 4 carácteres")
             return;
         }
-
     }
 
     return (

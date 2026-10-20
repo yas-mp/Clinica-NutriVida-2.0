@@ -4,6 +4,7 @@ import Nosotros from './pages/Nosotros'
 import Inicio from './pages/Inicio';
 import Login from './pages/Login';
 import Contacto from './pages/Contacto';
+import Footer from './components/organismos/Footer';
 
 
 function App(){
@@ -33,7 +34,7 @@ function App(){
         />
     </Routes>    
 
-
+    <Footer/>
     </>
     
   )

@@ -13,14 +13,13 @@ type CorreoProps = {
 function CampoCorreo({etiqueta, tipo, nombre, valor, alCambiar} : CorreoProps){
     return(
         <div className="mb-3">
-            <label htmlFor="correo" className="form-label fw-bold">
+            <label htmlFor="correo" className="form-label d-block">
                 {etiqueta}
             </label>
             <Input
             tipo={tipo}
             nombre={nombre}
             className="form-control"
-            placeholder="ejemplo@correo.cl"
             valor={valor}
             alCambiar={alCambiar}
             />

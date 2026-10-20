@@ -20,6 +20,7 @@ function Input({tipo, id,className,nombre, valor, maxLength, placeholder, alCamb
         maxLength={Number(maxLength)}
         placeholder={placeholder}
         onChange={(e) => alCambiar(e.target.value)}
+        style={{ backgroundColor: "#ffffff", color: "#212529" }}
         >
         </input>
     );

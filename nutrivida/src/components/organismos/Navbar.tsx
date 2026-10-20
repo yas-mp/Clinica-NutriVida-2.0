@@ -4,7 +4,7 @@ function Navbar(){
     return(
     <div>     
         <header>    
-            <nav className="navbar navbar-expand-lg navCustom" data-bs-theme="dark">
+            <nav className="navbar navbar-expand-lg navbar-custom" data-bs-theme="dark">
                 <div className="container-fluid">
                     <Link className="navbar-brand" to="/">
                     Nutrivida
@@ -49,8 +49,8 @@ function Navbar(){
                             </li>
                         </ul>
                         <div className="d-flex align-items-center">
-                            <Link className="btn btn-success btn-sm" to={"/login"} style={{borderRadius: '15px'}}
-                            >Mi portal</Link>
+                            <Link className="btn btn-success" to={"/login"} style={{borderRadius: '10px'}}
+                            >Iniciar sesión</Link>
                         </div>
                     </div>
                 </div>
