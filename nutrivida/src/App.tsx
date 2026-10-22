@@ -16,6 +16,8 @@ import Nutricionista from './pages/Nutricionista';
 
 
 import './assets/style.css';
+import Admin from './pages/Admin';
+import Blog from './pages/Blog';
 
 function App() {
   return (
@@ -28,6 +30,8 @@ function App() {
         <Route path="/nosotros" element={<Nosotros />} />
         <Route path="/login" element={<Login />} />
         <Route path="/contacto" element={<Contacto />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/admin" element={<Admin />} />
 
         {/* Tus rutas agregadas */}
         <Route path="/profesionales" element={<Profesionales />} />

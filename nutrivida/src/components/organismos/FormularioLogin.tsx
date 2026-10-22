@@ -28,7 +28,6 @@ function FormularioInicioSesion() {
       return;
     }
 
-    // Validación del formulario de registro
     if (contrasena.length < 4 || contrasena.length > 10) {
       alert("La contraseña debe tener entre 4 y 10 caracteres");
       return;
@@ -36,7 +35,18 @@ function FormularioInicioSesion() {
 
     const correoLimpio = correo.trim().toLowerCase();
 
-    // 1. Acceso para rol Nutricionista (cualquier correo @nutrivida.cl
+    if(correoLimpio === "prueba@admin.cl" || correoLimpio.includes("admin") && contrasena == "1234"){
+      const sesionAdmin = {
+        nombre: "Administrador",
+        correo: correoLimpio,
+        rol: "Administrador"
+      };
+      localStorage.setItem("usuario_sesion", JSON.stringify(sesionAdmin));
+      localStorage.setItem("nutrivida_usuario_activo", JSON.stringify(sesionAdmin));
+      navigate("/admin")
+      return;
+    }
+    
     if (
       correoLimpio === "nutri@nutrivida.cl" ||
       correoLimpio === "c.fuentes@nutrivida.cl" ||
@@ -54,7 +64,6 @@ function FormularioInicioSesion() {
       return;
     }
 
-    // 2. Buscar en los pacientes registrados en localStorage
     const usuariosRegistrados: UsuarioRegistrado[] = JSON.parse(
       localStorage.getItem("nutrivida_usuarios") || "[]"
     );
@@ -69,7 +78,6 @@ function FormularioInicioSesion() {
       return;
     }
 
-    // 3. Acceso rápido de prueba para Paciente si aún no se ha registrado manualmente
     const pacienteDemo: UsuarioRegistrado = {
       nombres: "Paciente",
       apellidos: "NutriVida",
