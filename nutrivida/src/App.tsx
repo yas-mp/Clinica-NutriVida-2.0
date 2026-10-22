@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/organismos/Navbar';
 import Footer from './components/organismos/Footer';
 
@@ -16,13 +16,16 @@ import Nutricionista from './pages/Nutricionista';
 
 
 import './assets/style.css';
-import Admin from './pages/Admin';
 import Blog from './pages/Blog';
+import { Admin } from './pages/Admin';
 
 function App() {
+  const location = useLocation();
+  const esAdmin = location.pathname.startsWith('/admin');
+  
   return (
     <div className="nv-page-wrapper">
-      <Navbar />
+      {!esAdmin && <Navbar />}
 
       <Routes>
         {/* Rutas base del proyecto */}

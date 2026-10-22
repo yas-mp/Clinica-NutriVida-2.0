@@ -4,6 +4,7 @@ import CampoContrasena from "../moleculas/CampoContrasena";
 import Boton from "../atomos/Boton";
 import { Link, useNavigate } from "react-router-dom";
 import type { UsuarioRegistrado } from "../../pages/RegistroUsuario";
+import { LISTADO_PROFESIONALES } from "../data/ListadoProfesionales";
 
 function FormularioInicioSesion() {
   const [correo, setCorreo] = useState("");
@@ -35,28 +36,34 @@ function FormularioInicioSesion() {
 
     const correoLimpio = correo.trim().toLowerCase();
 
-    if(correoLimpio === "prueba@admin.cl" || correoLimpio.includes("admin") && contrasena == "1234"){
+    if (
+      correoLimpio === "prueba@admin.cl" ||
+      (correoLimpio.includes("admin") && contrasena === "1234")
+    ) {
       const sesionAdmin = {
-        nombre: "Administrador",
+        nombres: "Administrador",
+        apellidos: "NutriVida",
+        rut: "111111111",
         correo: correoLimpio,
-        rol: "Administrador"
+        rol: "ADMINISTRADOR",
       };
       localStorage.setItem("usuario_sesion", JSON.stringify(sesionAdmin));
       localStorage.setItem("nutrivida_usuario_activo", JSON.stringify(sesionAdmin));
-      navigate("/admin")
+      navigate("/admin");
       return;
     }
-    
-    if (
-      correoLimpio === "nutri@nutrivida.cl" ||
-      correoLimpio === "c.fuentes@nutrivida.cl" ||
-      correoLimpio.endsWith("@nutrivida.cl")
-    ) {
+
+    const profesionalEncontrado = LISTADO_PROFESIONALES.find(
+      (p) => p.correo.toLowerCase() === correoLimpio && p.clave === contrasena
+    );
+
+    if (profesionalEncontrado) {
       const sesionNutri = {
-        nombres: "Carolina",
-        apellidos: "Fuentes M.",
-        rut: "15432987K",
-        correo: correoLimpio,
+        nombres: profesionalEncontrado.nombre,
+        apellidos: profesionalEncontrado.apellidos,
+        rut: profesionalEncontrado.rut || "15432987K",
+        correo: profesionalEncontrado.correo,
+        especialidad: profesionalEncontrado.especialidad,
         rol: "NUTRICIONISTA",
       };
       localStorage.setItem("nutrivida_usuario_activo", JSON.stringify(sesionNutri));
@@ -77,21 +84,7 @@ function FormularioInicioSesion() {
       navigate("/usuario");
       return;
     }
-
-    const pacienteDemo: UsuarioRegistrado = {
-      nombres: "Paciente",
-      apellidos: "NutriVida",
-      rut: "188663338",
-      correo: correoLimpio,
-      fechaNacimiento: "1999-04-15",
-      region: "La Araucanía",
-      comuna: "Temuco",
-      direccion: "Av. Alemania 0850",
-      rol: "PACIENTE",
-    };
-
-    localStorage.setItem("nutrivida_usuario_activo", JSON.stringify(pacienteDemo));
-    navigate("/usuario");
+    alert("Correo o contraseña incorrectos. Por favor verifica tus datos.");
   };
 
   return (

@@ -7,12 +7,18 @@ import type { MedicionClinica } from './Usuario';
 const Nutricionista: React.FC = () => {
   const navigate = useNavigate();
 
-  const [nutricionista] = useState({
-    nombre: 'Carolina Fuentes M.',
-    run: '15432987-K',
-    correo: 'c.fuentes@nutrivida.cl',
-    rol: 'Nutricionista — Obesidad y Síndrome Metabólico',
-  });
+  // 1. Obtener directamente los datos del profesional en sesión activa
+  const sesionActiva = localStorage.getItem('nutrivida_usuario_activo');
+  const usuarioLogueado = sesionActiva ? JSON.parse(sesionActiva) : null;
+
+  const nutricionista = usuarioLogueado
+    ? {
+        nombre: `${usuarioLogueado.nombres || ''} ${usuarioLogueado.apellidos || ''}`.trim() || usuarioLogueado.nombre || 'Profesional NutriVida',
+        run: usuarioLogueado.rut || usuarioLogueado.run || 'Sin RUT',
+        correo: usuarioLogueado.correo || '',
+        rol: usuarioLogueado.especialidad || usuarioLogueado.rol || 'Nutricionista Clínico',
+      }
+    : null;
 
   const [citasAgenda, setCitasAgenda] = useState<CitaMedica[]>([]);
   const [pacientes, setPacientes] = useState<UsuarioRegistrado[]>([]);
@@ -25,16 +31,62 @@ const Nutricionista: React.FC = () => {
   const [mensajeFicha, setMensajeFicha] = useState('');
 
   useEffect(() => {
-    setCitasAgenda(JSON.parse(localStorage.getItem('nutrivida_citas') || '[]'));
-    setPacientes(JSON.parse(localStorage.getItem('nutrivida_usuarios') || '[]'));
-  }, []);
+    if (!sesionActiva) {
+      navigate('/login');
+      return;
+    }
+
+    const nombreCompleto = `${usuarioLogueado.nombres || ''} ${usuarioLogueado.apellidos || ''}`.trim();
+
+    // Cargar citas desde ambas llaves
+    const todasLasCitas: any[] = JSON.parse(
+      localStorage.getItem('nutrivida_citas') ||
+        localStorage.getItem('nutrivida_reservas') ||
+        '[]'
+    );
+
+    // 2. Filtrar únicamente las citas que le corresponden a este profesional
+    const misCitas = todasLasCitas.filter((c: any) => {
+      if (!c.profesional) return true;
+
+      const profCita = c.profesional.toLowerCase();
+      const profActual = nombreCompleto.toLowerCase();
+      const primerNombre = (usuarioLogueado.nombres || '').toLowerCase();
+
+      return (
+        profCita.includes(profActual) ||
+        profActual.includes(profCita) ||
+        (primerNombre && profCita.includes(primerNombre))
+      );
+    });
+
+    setCitasAgenda(misCitas);
+
+    // Cargar lista general de pacientes
+    const todosLosUsuarios: UsuarioRegistrado[] = JSON.parse(
+      localStorage.getItem('nutrivida_usuarios') || '[]'
+    );
+    const soloPacientes = todosLosUsuarios.filter((u) => u.rol === 'PACIENTE' || !u.rol);
+    setPacientes(soloPacientes);
+  }, [navigate, sesionActiva]);
 
   const cambiarEstadoCita = (idCita: string, nuevoEstado: CitaMedica['estado']) => {
-    const actualizadas = citasAgenda.map((c) =>
+    const todasLasCitas: any[] = JSON.parse(
+      localStorage.getItem('nutrivida_citas') ||
+        localStorage.getItem('nutrivida_reservas') ||
+        '[]'
+    );
+
+    const actualizadasGlobales = todasLasCitas.map((c) =>
       c.id === idCita ? { ...c, estado: nuevoEstado } : c
     );
-    setCitasAgenda(actualizadas);
-    localStorage.setItem('nutrivida_citas', JSON.stringify(actualizadas));
+
+    localStorage.setItem('nutrivida_citas', JSON.stringify(actualizadasGlobales));
+    localStorage.setItem('nutrivida_reservas', JSON.stringify(actualizadasGlobales));
+
+    setCitasAgenda((prev) =>
+      prev.map((c) => (c.id === idCita ? { ...c, estado: nuevoEstado } : c))
+    );
   };
 
   const handleGuardarFicha = (e: React.FormEvent<HTMLFormElement>) => {
@@ -53,32 +105,44 @@ const Nutricionista: React.FC = () => {
       imc,
       planAlimenticio,
       observaciones: 'Control registrado digitalmente',
-      nutricionista: nutricionista.nombre,
+      nutricionista: nutricionista?.nombre || 'Nutricionista',
     };
 
     const fichas: MedicionClinica[] = JSON.parse(
       localStorage.getItem('nutrivida_fichas') || '[]'
     );
     localStorage.setItem('nutrivida_fichas', JSON.stringify([...fichas, nuevaFicha]));
+
     setMensajeFicha(`Mediciones y plan guardados para RUT ${nuevaFicha.rutPaciente}`);
     setPesoKg('');
     setTallaCm('');
     setCinturaCm('');
     setPlanAlimenticio('');
+    setRutFicha('');
   };
+
+  const handleCerrarSesion = () => {
+    localStorage.removeItem('nutrivida_usuario_activo');
+    navigate('/login');
+  };
+
+  if (!nutricionista) return null;
 
   return (
     <main>
       <section className="section-usuario">
         <div className="w-100 p-2 p-md-4">
-          <div className="d-flex justify-content-between align-items-center mb-4 pb-2" style={{ borderBottom: '3px solid #2a492a' }}>
+          <div
+            className="d-flex justify-content-between align-items-center mb-4 pb-2"
+            style={{ borderBottom: '3px solid #2a492a' }}
+          >
             <h2 className="fw-bold m-0" style={{ color: '#2a492a' }} id="titulo-bienvenida-nutri">
               Panel del Nutricionista
             </h2>
             <button
               type="button"
               className="btn btn-danger btn-sm rounded-pill px-3"
-              onClick={() => navigate('/login')}
+              onClick={handleCerrarSesion}
             >
               Cerrar sesión
             </button>
@@ -91,25 +155,49 @@ const Nutricionista: React.FC = () => {
             <div className="row g-3">
               <div className="col-md-6">
                 <label className="form-label fw-bold">Nombre Profesional:</label>
-                <input type="text" className="form-control" id="perfil-nombre" value={nutricionista.nombre} readOnly />
+                <input
+                  type="text"
+                  className="form-control"
+                  id="perfil-nombre"
+                  value={nutricionista.nombre}
+                  readOnly
+                />
               </div>
               <div className="col-md-6">
                 <label className="form-label fw-bold">RUN:</label>
-                <input type="text" className="form-control" id="perfil-run" value={nutricionista.run} readOnly />
+                <input
+                  type="text"
+                  className="form-control"
+                  id="perfil-run"
+                  value={nutricionista.run}
+                  readOnly
+                />
               </div>
               <div className="col-md-6">
                 <label className="form-label fw-bold">Correo Electrónico:</label>
-                <input type="text" className="form-control" id="perfil-correo" value={nutricionista.correo} readOnly />
+                <input
+                  type="text"
+                  className="form-control"
+                  id="perfil-correo"
+                  value={nutricionista.correo}
+                  readOnly
+                />
               </div>
               <div className="col-md-6">
                 <label className="form-label fw-bold">Especialidad / Rol:</label>
-                <input type="text" className="form-control" id="perfil-rol" value={nutricionista.rol} readOnly />
+                <input
+                  type="text"
+                  className="form-control"
+                  id="perfil-rol"
+                  value={nutricionista.rol}
+                  readOnly
+                />
               </div>
             </div>
           </div>
 
           <h4 className="fw-bold mb-3" style={{ color: '#2a492a' }}>
-            Agenda de Pacientes Agendados
+            Mi Agenda de Pacientes Agendados
           </h4>
           <div className="table-responsive mb-5">
             <table className="table table-hover align-middle">
@@ -127,13 +215,13 @@ const Nutricionista: React.FC = () => {
                 {citasAgenda.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center text-muted py-3">
-                      No hay citas agendadas.
+                      No tienes citas agendadas a tu nombre.
                     </td>
                   </tr>
                 ) : (
-                  citasAgenda.map((cita) => (
+                  citasAgenda.map((cita: any) => (
                     <tr key={cita.id}>
-                      <td>{cita.rutPaciente}</td>
+                      <td>{cita.rutPaciente || cita.rut}</td>
                       <td>{cita.servicio}</td>
                       <td>{cita.fecha}</td>
                       <td>{cita.hora}</td>
@@ -147,7 +235,7 @@ const Nutricionista: React.FC = () => {
                               : 'bg-warning text-dark'
                           }`}
                         >
-                          {cita.estado}
+                          {cita.estado || 'Pendiente'}
                         </span>
                       </td>
                       <td className="text-center">
@@ -272,7 +360,7 @@ const Nutricionista: React.FC = () => {
                       </td>
                       <td>{pac.correo}</td>
                       <td>
-                        {pac.comuna}, {pac.region}
+                        {pac.comuna && pac.region ? `${pac.comuna}, ${pac.region}` : 'Sin ubicación'}
                       </td>
                     </tr>
                   ))

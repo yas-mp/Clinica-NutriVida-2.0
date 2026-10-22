@@ -19,16 +19,9 @@ export interface MedicionClinica {
 const Usuario: React.FC = () => {
   const navigate = useNavigate();
 
-  const [paciente, setPaciente] = useState<UsuarioRegistrado>({
-    nombres: 'Paciente',
-    apellidos: 'NutriVida',
-    rut: '188663338',
-    correo: 'paciente@nutrivida.cl',
-    fechaNacimiento: '1998-05-14',
-    region: 'La Araucanía',
-    comuna: 'Temuco',
-    direccion: 'Av. Alemania 0850',
-    rol: 'PACIENTE',
+  const [paciente, setPaciente] = useState<UsuarioRegistrado | null>(() => {
+    const sesionActiva = localStorage.getItem('nutrivida_usuario_activo');
+    return sesionActiva ? JSON.parse(sesionActiva) : null;
   });
 
   const [misCitas, setMisCitas] = useState<CitaMedica[]>([]);
@@ -36,21 +29,31 @@ const Usuario: React.FC = () => {
 
   useEffect(() => {
     const sesionStr = localStorage.getItem('nutrivida_usuario_activo');
-    let rutActual = '188663338';
 
-    if (sesionStr) {
-      const userObj: UsuarioRegistrado = JSON.parse(sesionStr);
-      setPaciente(userObj);
-      rutActual = userObj.rut;
+    // Redirigir al login si no hay sesión activa
+    if (!sesionStr) {
+      navigate('/login');
+      return;
     }
 
-    const todasLasCitas: CitaMedica[] = JSON.parse(
-      localStorage.getItem('nutrivida_citas') || '[]'
-    );
-    setMisCitas(
-      todasLasCitas.filter((c) => !sesionStr || c.rutPaciente === rutActual)
+    const userObj: UsuarioRegistrado = JSON.parse(sesionStr);
+    setPaciente(userObj);
+    const rutActual = userObj.rut;
+
+    // Cargar citas desde las llaves 'nutrivida_citas' o 'nutrivida_reservas'
+    const citasCargadas: CitaMedica[] = JSON.parse(
+      localStorage.getItem('nutrivida_citas') ||
+        localStorage.getItem('nutrivida_reservas') ||
+        '[]'
     );
 
+    // Filtrar estrictamente las citas asociadas al RUT activo (compatibilidad con rut / rutPaciente)
+    const citasFiltradas = citasCargadas.filter(
+      (c: any) => c.rutPaciente === rutActual || c.rut === rutActual
+    );
+    setMisCitas(citasFiltradas);
+
+    // Cargar fichas / mediciones del paciente
     const todasLasFichas: MedicionClinica[] = JSON.parse(
       localStorage.getItem('nutrivida_fichas') || '[]'
     );
@@ -75,17 +78,28 @@ const Usuario: React.FC = () => {
     } else {
       setMisMediciones(fichasPaciente);
     }
-  }, []);
+  }, [navigate]);
 
   const handleCancelarCita = (idCita: string) => {
-    const todasLasCitas: CitaMedica[] = JSON.parse(
-      localStorage.getItem('nutrivida_citas') || '[]'
+    const claveStorage = localStorage.getItem('nutrivida_citas')
+      ? 'nutrivida_citas'
+      : 'nutrivida_reservas';
+
+    const todasLasCitas: any[] = JSON.parse(
+      localStorage.getItem(claveStorage) || '[]'
     );
+
     const actualizadas = todasLasCitas.map((c) =>
-      c.id === idCita ? { ...c, estado: 'Cancelada' as const } : c
+      c.id === idCita ? { ...c, estado: 'Cancelada' } : c
     );
-    localStorage.setItem('nutrivida_citas', JSON.stringify(actualizadas));
-    setMisCitas(actualizadas);
+
+    localStorage.setItem(claveStorage, JSON.stringify(actualizadas));
+    localStorage.setItem('nutrivida_reservas', JSON.stringify(actualizadas));
+
+    // Actualizar pantalla en tiempo real
+    if (paciente) {
+      setMisCitas(actualizadas.filter((c) => c.rutPaciente === paciente.rut || c.rut === paciente.rut));
+    }
   };
 
   const handleCerrarSesion = () => {
@@ -95,11 +109,16 @@ const Usuario: React.FC = () => {
 
   const ultimaMedicion = misMediciones[misMediciones.length - 1];
 
+  if (!paciente) return null;
+
   return (
     <main>
       <section className="section-usuario">
         <div className="w-100 p-2 p-md-4">
-          <div className="d-flex justify-content-between align-items-center mb-4 pb-2" style={{ borderBottom: '3px solid #2a492a' }}>
+          <div
+            className="d-flex justify-content-between align-items-center mb-4 pb-2"
+            style={{ borderBottom: '3px solid #2a492a' }}
+          >
             <h2 className="fw-bold m-0" style={{ color: '#2a492a' }} id="titulo-bienvenida">
               Bienvenido a tu Portal
             </h2>
@@ -123,7 +142,7 @@ const Usuario: React.FC = () => {
                   type="text"
                   className="form-control"
                   id="perfil-nombre"
-                  value={`${paciente.nombres} ${paciente.apellidos}`}
+                  value={`${paciente.nombres} ${paciente.apellidos}`.trim()}
                   readOnly
                 />
               </div>
@@ -153,7 +172,7 @@ const Usuario: React.FC = () => {
                   type="text"
                   className="form-control"
                   id="perfil-ubicacion"
-                  value={`${paciente.comuna}, ${paciente.region}`}
+                  value={paciente.comuna && paciente.region ? `${paciente.comuna}, ${paciente.region}` : ''}
                   readOnly
                 />
               </div>
@@ -238,7 +257,7 @@ const Usuario: React.FC = () => {
                                 })
                               }
                             >
-                              Reprogramar
+                              Modificar
                             </button>
                             <button
                               type="button"

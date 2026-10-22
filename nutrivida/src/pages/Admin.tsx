@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { TablaReservasAdmin, TablaServiciosAdmin, TablaUsuariosAdmin } from "../components/organismos/TablasVistaAdmin";
-
+import { useNavigate } from "react-router-dom";
 
 export const Admin: React.FC = () => {
   const [listaUsuarios, setListaUsuarios] = useState<any[]>([]);
   const [listaReservas, setListaReservas] = useState<any[]>([]);
   const [servicios, setServicios] = useState<any[]>([]);
+  const navigate = useNavigate();
 
   const [servCodigo, setServCodigo] = useState("");
   const [servNombre, setServNombre] = useState("");
@@ -13,40 +14,65 @@ export const Admin: React.FC = () => {
   const [servPrecio, setServPrecio] = useState("");
 
   useEffect(() => {
+    // 1. Validar sesión de administrador en las claves unificadas
     const usuarioActivo = JSON.parse(
-      localStorage.getItem("usuario_sesion") || "null"
+      localStorage.getItem("nutrivida_usuario_activo") ||
+        localStorage.getItem("usuario_sesion") ||
+        "null"
     );
 
     if (!usuarioActivo) {
       alert("Debes iniciar sesión para acceder al panel de administración.");
-      window.location.href = "/inicio-sesion";
+      navigate("/login");
       return;
     }
 
+    const rolUpper = String(usuarioActivo.rol || "").toUpperCase();
     const esAdmin =
-      usuarioActivo.rol === "Administrador" || usuarioActivo.rol === "admin";
+      rolUpper === "ADMIN" ||
+      rolUpper === "ADMINISTRADOR" ||
+      usuarioActivo.correo?.includes("admin");
 
     if (!esAdmin) {
       alert("No tienes permisos de administrador para acceder a esta vista.");
-      window.location.href = "/inicio-sesion";
+      navigate("/login");
       return;
     }
 
-    const usuario = JSON.parse(localStorage.getItem("usuarios") || "[]");
-    const reserva = JSON.parse(localStorage.getItem("reservas") || "[]");
-    const servicio = JSON.parse(localStorage.getItem("servicios") || "[]");
+    // 2. Cargar datos usando las llaves con prefijo 'nutrivida_'
+    const usuarios = JSON.parse(
+      localStorage.getItem("nutrivida_usuarios") ||
+        localStorage.getItem("usuarios") ||
+        "[]"
+    );
 
-    setListaUsuarios(usuario);
-    setListaReservas(reserva);
-    setServicios(servicio);
-  }, []);
+    const reservas = JSON.parse(
+      localStorage.getItem("nutrivida_citas") ||
+        localStorage.getItem("nutrivida_reservas") ||
+        localStorage.getItem("reservas") ||
+        "[]"
+    );
+
+    const serviciosGuardados = JSON.parse(
+      localStorage.getItem("nutrivida_servicios") ||
+        localStorage.getItem("servicios") ||
+        "[]"
+    );
+
+    setListaUsuarios(usuarios);
+    setListaReservas(reservas);
+    setServicios(serviciosGuardados);
+  }, [navigate]);
 
   const cancelarReserva = (index: number) => {
     if (confirm("¿Estás seguro de cancelar esta reserva?")) {
       const nuevaLista = [...listaReservas];
       nuevaLista.splice(index, 1);
       setListaReservas(nuevaLista);
-      localStorage.setItem("reservas", JSON.stringify(nuevaLista));
+
+      // Sincronizar en ambas llaves posibles
+      localStorage.setItem("nutrivida_citas", JSON.stringify(nuevaLista));
+      localStorage.setItem("nutrivida_reservas", JSON.stringify(nuevaLista));
     }
   };
 
@@ -55,14 +81,15 @@ export const Admin: React.FC = () => {
     if (nuevaLista[pos]) {
       nuevaLista[pos].rol = nRol;
       setListaUsuarios(nuevaLista);
-      localStorage.setItem("usuarios", JSON.stringify(nuevaLista));
+      localStorage.setItem("nutrivida_usuarios", JSON.stringify(nuevaLista));
 
       const usuarioSesion = JSON.parse(
-        localStorage.getItem("usuario_sesion") || "null"
+        localStorage.getItem("nutrivida_usuario_activo") || "null"
       );
+
       if (usuarioSesion && usuarioSesion.correo === nuevaLista[pos].correo) {
         usuarioSesion.rol = nRol;
-        localStorage.setItem("usuario_sesion", JSON.stringify(usuarioSesion));
+        localStorage.setItem("nutrivida_usuario_activo", JSON.stringify(usuarioSesion));
       }
 
       alert("Rol cambiado a " + nRol + " exitosamente.");
@@ -74,21 +101,21 @@ export const Admin: React.FC = () => {
       const nuevaLista = [...listaUsuarios];
       nuevaLista.splice(index, 1);
       setListaUsuarios(nuevaLista);
-      localStorage.setItem("usuarios", JSON.stringify(nuevaLista));
+      localStorage.setItem("nutrivida_usuarios", JSON.stringify(nuevaLista));
     }
   };
 
   const modificarUsuario = (index: number) => {
     const user = listaUsuarios[index];
     const nuevoCorreo = prompt(
-      "Ingrese el nuevo correo electronico:",
+      "Ingrese el nuevo correo electrónico:",
       user.correo || ""
     );
     if (nuevoCorreo !== null && nuevoCorreo.trim() !== "") {
       const nuevaLista = [...listaUsuarios];
       nuevaLista[index].correo = nuevoCorreo.trim();
       setListaUsuarios(nuevaLista);
-      localStorage.setItem("usuarios", JSON.stringify(nuevaLista));
+      localStorage.setItem("nutrivida_usuarios", JSON.stringify(nuevaLista));
     }
   };
 
@@ -105,7 +132,8 @@ export const Admin: React.FC = () => {
 
     const nuevaLista = [...servicios, nuevoServicio];
     setServicios(nuevaLista);
-    localStorage.setItem("servicios", JSON.stringify(nuevaLista));
+    localStorage.setItem("nutrivida_servicios", JSON.stringify(nuevaLista));
+
     setServCodigo("");
     setServNombre("");
     setServProfesional("");
@@ -118,28 +146,29 @@ export const Admin: React.FC = () => {
     const nuevoPrecio = prompt("Ingrese el nuevo precio para el servicio:");
     if (nuevoPrecio !== null && nuevoPrecio !== "") {
       const nuevaLista = servicios.map((servi) => {
-        if (servi.id === id) {
+        if (servi.id === id || String(servi.id) === String(id)) {
           return { ...servi, precio: parseInt(nuevoPrecio) };
         }
         return servi;
       });
       setServicios(nuevaLista);
-      localStorage.setItem("servicios", JSON.stringify(nuevaLista));
+      localStorage.setItem("nutrivida_servicios", JSON.stringify(nuevaLista));
     }
   };
 
   const eliminarServicio = (id: number) => {
     if (confirm("¿Estás seguro de que deseas eliminar este servicio?")) {
-      const nuevaLista = servicios.filter((servi) => servi.id !== id);
+      const nuevaLista = servicios.filter((servi) => servi.id !== id && String(servi.id) !== String(id));
       setServicios(nuevaLista);
-      localStorage.setItem("servicios", JSON.stringify(nuevaLista));
+      localStorage.setItem("nutrivida_servicios", JSON.stringify(nuevaLista));
     }
   };
 
   const cerrarSesion = () => {
+    localStorage.removeItem("nutrivida_usuario_activo");
     localStorage.removeItem("usuario_sesion");
     alert("Has cerrado sesión correctamente.");
-    window.location.href = "/inicio-sesion";
+    navigate("/login");
   };
 
   return (
@@ -150,16 +179,17 @@ export const Admin: React.FC = () => {
           style={{ backgroundColor: "rgb(49, 78, 34)" }}
         >
           <div className="container-fluid">
-            <a className="navbar-brand fw-bold" href="#">
-              NutriVida | Panel Administrativo
-            </a>
+            <span className="navbar-brand fw-bold">Panel Administrativo</span>
             <div className="d-flex align-items-center">
               <span className="text-white me-3 d-none d-md-inline">
                 Sesión: Admin
               </span>
-              <a href="/" className="btn btn-outline-light btn-sm me-2">
+              <button
+                className="btn btn-outline-light btn-sm me-2"
+                onClick={() => navigate("/")}
+              >
                 Ir al Sitio
-              </a>
+              </button>
               <button
                 className="btn btn-danger btn-sm"
                 onClick={cerrarSesion}

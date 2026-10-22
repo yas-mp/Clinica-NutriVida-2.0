@@ -133,7 +133,7 @@ export const TablaReservasAdmin: React.FC<TablaReservasProps> = ({
                     label="Cancelar"
                     className="btn btn-danger btn-sm me-1"
                     onClick={() => onCancelarReserva(i)}
-                    />
+                  />
                 </td>
               </tr>
             ))

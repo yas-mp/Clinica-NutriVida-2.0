@@ -1,10 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import icono1 from '../assets/images/icono1.jpg';
-import icono2 from '../assets/images/icono2.jpg';
-import icono3 from '../assets/images/icono3.webp';
-import carruselNutri from '../assets/images/carruselNutri.webp';
+import Nutri1 from '../assets/images/nutricionista.jpg';
+import Nutri2 from '../assets/images/nutricionista2.jpg';
+import Nutri3 from '../assets/images/nutricionista3.jpg';
+import Nutri4 from '../assets/images/nutricionista4.jpg';
+import Boton from '../components/atomos/Boton';
 
 export interface Profesional {
   id: number;
@@ -25,7 +26,7 @@ export const LISTA_PROFESIONALES: Profesional[] = [
       'Especialista en el tratamiento integral del exceso de peso, resistencia a la insulina y enfermedades metabólicas. Enfoque centrado en la reeducación alimentaria.',
     modalidad: 'Presencial y Online',
     horario: 'Lunes a Jueves 09:00 - 14:00',
-    imagen: icono1,
+    imagen: Nutri1,
   },
   {
     id: 2,
@@ -35,7 +36,7 @@ export const LISTA_PROFESIONALES: Profesional[] = [
       'Enfocado en la optimización de la composición corporal, planificación nutricional para deportistas de alto rendimiento y suplementación basada en evidencia científica.',
     modalidad: 'Presencial y Online',
     horario: 'Martes a Viernes 14:00 - 19:30',
-    imagen: icono2,
+    imagen: Nutri2,
   },
   {
     id: 3,
@@ -45,7 +46,7 @@ export const LISTA_PROFESIONALES: Profesional[] = [
       'Acompañamiento en transiciones hacia dietas basadas en plantas de forma segura y nutricionalmente completa. Abordaje de la relación con la comida desde un enfoque compasivo.',
     modalidad: 'Online',
     horario: 'Lunes, Miércoles y Viernes 10:00 - 16:00',
-    imagen: icono3,
+    imagen: Nutri3,
   },
   {
     id: 4,
@@ -55,7 +56,7 @@ export const LISTA_PROFESIONALES: Profesional[] = [
       'Experto en alimentación infantil, lactancia, introducción alimentaria y selectividad alimentaria en niños. Evaluación del crecimiento y estado nutricional familiar.',
     modalidad: 'Presencial',
     horario: 'Lunes a Viernes 09:00 - 13:00',
-    imagen: carruselNutri,
+    imagen: Nutri4,
   },
 ];
 
@@ -105,14 +106,11 @@ const Profesionales: React.FC = () => {
                   </small>
                   <span className="fw-semibold text-dark">{prof.horario}</span>
                 </div>
-
-                <button
-                  type="button"
+                <Boton
+                  label="Reservar hora"
+                  className="btn btn-success d-block mx-auto"
                   onClick={() => handleReservarConProfesional(prof.nombre)}
-                  className="btn nv-btn-primary w-100 mt-auto"
-                >
-                  Reservar Hora
-                </button>
+                />
               </div>
             </article>
           </div>
