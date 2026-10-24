@@ -13,7 +13,7 @@ function Input({tipo, id,className,nombre, valor, maxLength, placeholder, alCamb
     return(
         <input
         type={tipo}
-        id={id}
+        id={id || nombre}
         className={className}
         name={nombre}
         value={valor}

@@ -10,7 +10,7 @@ type CampoFormularioProps = {
     alCambiar: (valor:string) => void;
 }
 
-function CampoFormulario({etiqueta, tipo, nombre, valor, alCambiar} : CampoFormularioProps){
+function CampoFormulario({etiqueta, tipo, nombre,placeholder, valor, maxLength, alCambiar} : CampoFormularioProps){
     return(
         <div className="col-12">
             <label htmlFor={nombre} className="form-label d-block">
@@ -20,7 +20,9 @@ function CampoFormulario({etiqueta, tipo, nombre, valor, alCambiar} : CampoFormu
             tipo={tipo}
             className="form-control"
             nombre={nombre}
+            placeholder={placeholder}
             valor={valor}
+            maxLength={maxLength}
             alCambiar={alCambiar}
             
             />

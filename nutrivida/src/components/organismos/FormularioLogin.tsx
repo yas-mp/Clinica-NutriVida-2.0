@@ -6,7 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import type { UsuarioRegistrado } from "../../pages/RegistroUsuario";
 import { LISTADO_PROFESIONALES } from "../data/ListadoProfesionales";
 
-function FormularioInicioSesion() {
+function FormularioLogin() {
   const [correo, setCorreo] = useState("");
   const [contrasena, setContrasena] = useState("");
   const navigate = useNavigate();
@@ -137,4 +137,4 @@ function FormularioInicioSesion() {
   );
 }
 
-export default FormularioInicioSesion;
+export default FormularioLogin;
