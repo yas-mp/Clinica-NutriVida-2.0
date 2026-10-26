@@ -38,7 +38,6 @@ const Servicios: React.FC = () => {
         <p className="text-muted">Conoce los planes y consultas que tenemos para ti</p>
       </div>
 
-      {/* Filtro de búsqueda*/}
       <div className="row g-3 mb-4">
         <div className="col-md-8">
           <input

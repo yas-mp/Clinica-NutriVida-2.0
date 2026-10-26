@@ -5,8 +5,7 @@ type CorreoProps = {
     tipo: string;
     nombre: string;
     placeHolder?: string;
-    valor: string,
-     maxLength?: number | string;
+    valor: string;
     alCambiar: (valor:string) => void;
 }
 

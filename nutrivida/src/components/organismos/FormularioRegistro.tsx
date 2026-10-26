@@ -205,7 +205,7 @@ export const FormularioRegistro: React.FC<FormularioRegistroProps> = ({
         <Boton
           label="Registrarse"
           tipo="submit"
-          className="btn btn-success mx-auto"
+          className="btn btn-success w-100 fw-bold mb-3"
         />
       </div>
 

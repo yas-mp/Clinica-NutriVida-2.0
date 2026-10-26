@@ -30,7 +30,6 @@ const Usuario: React.FC = () => {
   useEffect(() => {
     const sesionStr = localStorage.getItem('nutrivida_usuario_activo');
 
-    // Redirigir al login si no hay sesión activa
     if (!sesionStr) {
       navigate('/login');
       return;
@@ -40,20 +39,24 @@ const Usuario: React.FC = () => {
     setPaciente(userObj);
     const rutActual = userObj.rut;
 
-    // Cargar citas desde las llaves 'nutrivida_citas' o 'nutrivida_reservas'
+    const rolUpper = String(userObj.rol || '').toUpperCase();
+
+    if (rolUpper.includes('NUTRI') || rolUpper === 'NUTRICIONISTA') {
+      navigate('/nutricionista');
+      return;
+    }
+
     const citasCargadas: CitaMedica[] = JSON.parse(
       localStorage.getItem('nutrivida_citas') ||
         localStorage.getItem('nutrivida_reservas') ||
         '[]'
     );
 
-    // Filtrar estrictamente las citas asociadas al RUT activo (compatibilidad con rut / rutPaciente)
     const citasFiltradas = citasCargadas.filter(
       (c: any) => c.rutPaciente === rutActual || c.rut === rutActual
     );
     setMisCitas(citasFiltradas);
 
-    // Cargar fichas / mediciones del paciente
     const todasLasFichas: MedicionClinica[] = JSON.parse(
       localStorage.getItem('nutrivida_fichas') || '[]'
     );
@@ -179,7 +182,6 @@ const Usuario: React.FC = () => {
             </div>
           </div>
 
-          {/* Plan Alimenticio y Mediciones */}
           {ultimaMedicion && (
             <div className="nv-info-box mb-4 p-3 rounded">
               <h4 className="fw-bold mb-2" style={{ color: '#2a492a' }}>
@@ -201,7 +203,7 @@ const Usuario: React.FC = () => {
             <h4 className="m-0 fw-bold" style={{ color: '#2a492a' }}>
               Mis Citas Médicas
             </h4>
-            <Link to="/reservas-horas" className="btn nv-btn-primary btn-sm">
+            <Link to="/reservas-horas" className="btn btn-success btn-sm">
               + Reservar Cita
             </Link>
           </div>

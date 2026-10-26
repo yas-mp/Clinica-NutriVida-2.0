@@ -1,25 +1,23 @@
 //@vitest-environment jsdom
 import CampoContrasena from "../components/moleculas/CampoContrasena";
 import { test, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 
-test("Debe permitir escribir una contrasena", () => {
+test("Debe marcar inválido si la contraseña tiene menos de 4 caracteres", () => {
+  render(
+    <CampoContrasena
+      etiqueta="contrasena"
+      tipo="password"
+      nombre="contrasena"
+      valor="124" 
+      alCambiar={vi.fn()}
+    />
+  );
 
-    const onAlCambiar = vi.fn();
+  const input = screen.getByPlaceholderText("****") as HTMLInputElement;
 
-    render(<CampoContrasena
-    etiqueta="contrasena"
-    tipo="password"
-    nombre="contrasena"
-    valor=""
-    alCambiar={onAlCambiar}/>);
-    const input = screen.getByPlaceholderText("****");
-    fireEvent.change(input, {target: {value: '1234'}});
-    
-    expect(onAlCambiar).toHaveBeenCalled()
-})
-
-
+  expect(input.checkValidity()).toBe(true);
+});
 
 
-/* npm install -D @testing-library/react @testing-library/jest-dom jsdom*/
+

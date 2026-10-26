@@ -222,7 +222,7 @@ const ReservasHoras: React.FC = () => {
           </div>
         </div>
 
-        <button type="submit" className="btn nv-btn-primary w-100 fw-bold mt-2">
+        <button type="submit" className="btn btn-success w-100 fw-bold mb-3">
           Confirmar Reserva
         </button>
       </form>

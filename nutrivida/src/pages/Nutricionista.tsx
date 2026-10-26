@@ -35,17 +35,24 @@ const Nutricionista: React.FC = () => {
       navigate('/login');
       return;
     }
+    
+    const rolUpper = String(usuarioLogueado.rol || '').toUpperCase();
+    const esNutri = rolUpper.includes('NUTRI') || rolUpper === 'NUTRICIONISTA';
+    
+    if (!esNutri) {
+      alert("No tienes permisos de Nutricionista para acceder a esta vista.");
+      navigate('/login');
+      return;
+    }
 
     const nombreCompleto = `${usuarioLogueado.nombres || ''} ${usuarioLogueado.apellidos || ''}`.trim();
 
-    // Cargar citas desde ambas llaves
     const todasLasCitas: any[] = JSON.parse(
       localStorage.getItem('nutrivida_citas') ||
         localStorage.getItem('nutrivida_reservas') ||
         '[]'
     );
 
-    // 2. Filtrar únicamente las citas que le corresponden a este profesional
     const misCitas = todasLasCitas.filter((c: any) => {
       if (!c.profesional) return true;
 
@@ -62,7 +69,6 @@ const Nutricionista: React.FC = () => {
 
     setCitasAgenda(misCitas);
 
-    // Cargar lista general de pacientes
     const todosLosUsuarios: UsuarioRegistrado[] = JSON.parse(
       localStorage.getItem('nutrivida_usuarios') || '[]'
     );
@@ -324,7 +330,7 @@ const Nutricionista: React.FC = () => {
                 />
               </div>
               <div className="col-12 text-end">
-                <button type="submit" className="btn nv-btn-primary">
+                <button type="submit" className="btn btn-success ">
                   Guardar Ficha Clínica
                 </button>
               </div>

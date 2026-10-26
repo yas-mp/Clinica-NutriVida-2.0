@@ -8,7 +8,7 @@ function Contacto() {
         style={{ maxWidth: '650px', borderRadius: '16px' }}
       >
         <h2 className="text-center fw-bold mt-2 mb-4" style={{ color: '#2e7d32' }}>
-          Agenda tu primera consulta
+          Formulario de Contacto
         </h2>
 
         <div className="card-body">

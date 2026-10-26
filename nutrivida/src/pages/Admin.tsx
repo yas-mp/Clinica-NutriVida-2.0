@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { TablaReservasAdmin, TablaServiciosAdmin, TablaUsuariosAdmin } from "../components/organismos/TablasVistaAdmin";
+import {
+  TablaReservasAdmin,
+  TablaServiciosAdmin,
+  TablaUsuariosAdmin,
+} from "../components/organismos/TablasVistaAdmin";
+import { LISTADO_SERVICIOS } from "../components/data/ListadoServicios";
 import { useNavigate } from "react-router-dom";
 
 export const Admin: React.FC = () => {
@@ -17,7 +22,7 @@ export const Admin: React.FC = () => {
     const usuarioActivo = JSON.parse(
       localStorage.getItem("nutrivida_usuario_activo") ||
         localStorage.getItem("usuario_sesion") ||
-        "null"
+        "null",
     );
 
     if (!usuarioActivo) {
@@ -41,21 +46,28 @@ export const Admin: React.FC = () => {
     const usuarios = JSON.parse(
       localStorage.getItem("nutrivida_usuarios") ||
         localStorage.getItem("usuarios") ||
-        "[]"
+        "[]",
     );
 
     const reservas = JSON.parse(
       localStorage.getItem("nutrivida_citas") ||
         localStorage.getItem("nutrivida_reservas") ||
         localStorage.getItem("reservas") ||
-        "[]"
+        "[]",
     );
 
     const serviciosGuardados = JSON.parse(
       localStorage.getItem("nutrivida_servicios") ||
         localStorage.getItem("servicios") ||
-        "[]"
+        "null",
     );
+    if(!serviciosGuardados || serviciosGuardados.length === 0){
+      setServicios(LISTADO_SERVICIOS);
+      localStorage.setItem("nutrivida_servicios", JSON.stringify(LISTADO_SERVICIOS));
+    } else {
+    setServicios(servicios);
+    }
+    
 
     setListaUsuarios(usuarios);
     setListaReservas(reservas);
@@ -81,12 +93,15 @@ export const Admin: React.FC = () => {
       localStorage.setItem("nutrivida_usuarios", JSON.stringify(nuevaLista));
 
       const usuarioSesion = JSON.parse(
-        localStorage.getItem("nutrivida_usuario_activo") || "null"
+        localStorage.getItem("nutrivida_usuario_activo") || "null",
       );
 
       if (usuarioSesion && usuarioSesion.correo === nuevaLista[pos].correo) {
         usuarioSesion.rol = nRol;
-        localStorage.setItem("nutrivida_usuario_activo", JSON.stringify(usuarioSesion));
+        localStorage.setItem(
+          "nutrivida_usuario_activo",
+          JSON.stringify(usuarioSesion),
+        );
       }
 
       alert("Rol cambiado a " + nRol + " exitosamente.");
@@ -106,7 +121,7 @@ export const Admin: React.FC = () => {
     const user = listaUsuarios[index];
     const nuevoCorreo = prompt(
       "Ingrese el nuevo correo electrónico:",
-      user.correo || ""
+      user.correo || "",
     );
     if (nuevoCorreo !== null && nuevoCorreo.trim() !== "") {
       const nuevaLista = [...listaUsuarios];
@@ -155,7 +170,9 @@ export const Admin: React.FC = () => {
 
   const eliminarServicio = (id: number) => {
     if (confirm("¿Estás seguro de que deseas eliminar este servicio?")) {
-      const nuevaLista = servicios.filter((servi) => servi.id !== id && String(servi.id) !== String(id));
+      const nuevaLista = servicios.filter(
+        (servi) => servi.id !== id && String(servi.id) !== String(id),
+      );
       setServicios(nuevaLista);
       localStorage.setItem("nutrivida_servicios", JSON.stringify(nuevaLista));
     }
@@ -187,10 +204,7 @@ export const Admin: React.FC = () => {
               >
                 Ir al Sitio
               </button>
-              <button
-                className="btn btn-danger btn-sm"
-                onClick={cerrarSesion}
-              >
+              <button className="btn btn-danger btn-sm" onClick={cerrarSesion}>
                 Cerrar Sesión
               </button>
             </div>

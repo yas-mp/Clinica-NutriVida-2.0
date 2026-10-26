@@ -27,7 +27,6 @@ function App() {
       {!esAdmin && <Navbar />}
 
       <Routes>
-        {/* Rutas base del proyecto */}
         <Route path="/" element={<Inicio />} />
         <Route path="/nosotros" element={<Nosotros />} />
         <Route path="/login" element={<Login />} />
@@ -35,7 +34,6 @@ function App() {
         <Route path="/blog" element={<Blog />} />
         <Route path="/admin" element={<Admin />} />
 
-        {/* Tus rutas agregadas */}
         <Route path="/profesionales" element={<Profesionales />} />
         <Route path="/servicios" element={<Servicios />} />
         <Route path="/servicios/:id" element={<DetalleServicio />} />

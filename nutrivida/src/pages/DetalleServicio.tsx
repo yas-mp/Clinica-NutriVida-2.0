@@ -6,7 +6,6 @@ import CardDetalleServicios from '../components/moleculas/CardDetalleServicios';
 const DetalleServicio: React.FC = () => {
   const { id } = useParams<{ id: string }>();
 
-  // Buscamos el servicio por ID desde la URL
   const servicioPorUrl = LISTADO_SERVICIOS.find((s) => s.id === Number(id));
   const servicioLocalStorage = localStorage.getItem('servicio')
     ? JSON.parse(localStorage.getItem('servicio')!)

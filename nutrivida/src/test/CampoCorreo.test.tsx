@@ -1,21 +1,20 @@
 //@vitest-environment jsdom
 import { test, expect, vi} from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import CampoCorreo from "../components/moleculas/CampoCorreo";
 
-test("Debe poder ingresar un correo", () => {
-    const onAlcambiar = vi.fn();
+test("Debe marcar el campo como valido si el correo tiene el formato de correo: example@gmail.com", () => {
+  render(
+    <CampoCorreo 
+      etiqueta="correo"
+      tipo="email"
+      nombre="correo"
+      valor="yasna@gmail.com" 
+      alCambiar={vi.fn()}
+    />
+  );
 
-    render(<CampoCorreo 
-        etiqueta="correo"
-        tipo="email"
-        nombre="correo"
-        valor=""
-        alCambiar={onAlcambiar}/>)
+  const input = screen.getByRole("textbox") as HTMLInputElement;
 
-        const input = screen.getByRole("textbox")
-        fireEvent.change(input, {target: {value: 'yasna@gmail.com'}})
-
-        expect(onAlcambiar).toHaveBeenCalled()
-
-})
+  expect(input.checkValidity()).toBe(true);
+});
