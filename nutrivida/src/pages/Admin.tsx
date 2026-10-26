@@ -14,7 +14,6 @@ export const Admin: React.FC = () => {
   const [servPrecio, setServPrecio] = useState("");
 
   useEffect(() => {
-    // 1. Validar sesión de administrador en las claves unificadas
     const usuarioActivo = JSON.parse(
       localStorage.getItem("nutrivida_usuario_activo") ||
         localStorage.getItem("usuario_sesion") ||
@@ -39,7 +38,6 @@ export const Admin: React.FC = () => {
       return;
     }
 
-    // 2. Cargar datos usando las llaves con prefijo 'nutrivida_'
     const usuarios = JSON.parse(
       localStorage.getItem("nutrivida_usuarios") ||
         localStorage.getItem("usuarios") ||
@@ -70,7 +68,6 @@ export const Admin: React.FC = () => {
       nuevaLista.splice(index, 1);
       setListaReservas(nuevaLista);
 
-      // Sincronizar en ambas llaves posibles
       localStorage.setItem("nutrivida_citas", JSON.stringify(nuevaLista));
       localStorage.setItem("nutrivida_reservas", JSON.stringify(nuevaLista));
     }
