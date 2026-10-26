@@ -1,10 +1,10 @@
 //@vitest-environment jsdom
 import { test, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Servicios from "../pages/Servicios";
 
-test("Debe renderizar el catálogo de servicios y los botones Ver Detalle", () => {
+test("Debe renderizar los 18 servicios y permitir filtrar por nombre en el buscador", () => {
   render(
     <MemoryRouter>
       <Servicios />
@@ -12,6 +12,11 @@ test("Debe renderizar el catálogo de servicios y los botones Ver Detalle", () =
   );
 
   expect(screen.getByText("Nuestros Servicios")).toBeTruthy();
-  expect(screen.getByText("Asesoría en Nutrición Deportiva")).toBeTruthy();
-  expect(screen.getAllByText(/Ver Detalle/i).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/Más información/i).length).toBe(18);
+
+  const inputBusqueda = screen.getByPlaceholderText(/Buscar servicio por nombre/i);
+  fireEvent.change(inputBusqueda, { target: { value: "Bioimpedanciometría" } });
+
+  expect(screen.getByText("Bioimpedanciometría")).toBeTruthy();
+  expect(screen.getAllByText(/Más información/i).length).toBe(1);
 });
