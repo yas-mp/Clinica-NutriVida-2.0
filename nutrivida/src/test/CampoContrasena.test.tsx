@@ -3,7 +3,7 @@ import CampoContrasena from "../components/moleculas/CampoContrasena";
 import { test, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-test("Debe marcar valido si la contraseña tiene de 4  a 10 caracteres", () => {
+test("Debe marcar valido si la contraseña tiene de 4 caracteres", () => {
   render(
     <CampoContrasena
       etiqueta="contrasena"
