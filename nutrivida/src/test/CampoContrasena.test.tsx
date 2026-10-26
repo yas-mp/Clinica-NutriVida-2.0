@@ -3,13 +3,13 @@ import CampoContrasena from "../components/moleculas/CampoContrasena";
 import { test, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-test("Debe marcar inválido si la contraseña tiene menos de 4 caracteres", () => {
+test("Debe marcar valido si la contraseña tiene de 4  a 10 caracteres", () => {
   render(
     <CampoContrasena
       etiqueta="contrasena"
       tipo="password"
       nombre="contrasena"
-      valor="124" 
+      valor="1234" 
       alCambiar={vi.fn()}
     />
   );
