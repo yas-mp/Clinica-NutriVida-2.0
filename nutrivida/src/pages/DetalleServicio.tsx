@@ -1,37 +1,33 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { LISTADO_SERVICIOS } from '../components/data/ListadoServicios';
 import CardDetalleServicios from '../components/moleculas/CardDetalleServicios';
 
 const DetalleServicio: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
 
-  const servicioEncontrado = LISTADO_SERVICIOS.find(
-    (item) => item.id === Number(id)
-  );
+  // Buscamos el servicio por ID desde la URL
+  const servicioPorUrl = LISTADO_SERVICIOS.find((s) => s.id === Number(id));
+  const servicioLocalStorage = localStorage.getItem('servicio')
+    ? JSON.parse(localStorage.getItem('servicio')!)
+    : null;
 
-  if (!servicioEncontrado) {
+  const servicio = servicioPorUrl || servicioLocalStorage;
+
+  if (!servicio) {
     return (
-      <main className="detalle-servicio container text-center my-5">
-        <h1>Servicio no encontrado</h1>
-        <p className="text-muted">No existe un servicio asociado al identificador {id}.</p>
-        <div className="mt-3">
-          <button
-            type="button"
-            className="nv-btn-primary px-4 py-2"
-            onClick={() => navigate('/servicios')}
-          >
-            Volver a Servicios
-          </button>
-        </div>
+      <main className="container my-auto py-5 text-center">
+        <h2>Servicio no encontrado</h2>
+        <Link to="/servicios" className="btn btn-success mt-3">
+          Volver a Servicios
+        </Link>
       </main>
     );
   }
 
   return (
-    <main className="detalle-servicio">
-      <CardDetalleServicios servicio={servicioEncontrado} />
+    <main className="container my-auto py-5 d-flex justify-content-center">
+      <CardDetalleServicios servicio={servicio} />
     </main>
   );
 };

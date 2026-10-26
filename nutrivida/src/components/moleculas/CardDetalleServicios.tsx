@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import type { ServicioNutricional } from '../data/ListadoServicios';
 
 interface CardDetalleServiciosProps {
@@ -7,63 +7,78 @@ interface CardDetalleServiciosProps {
 }
 
 const CardDetalleServicios: React.FC<CardDetalleServiciosProps> = ({ servicio }) => {
-  const navigate = useNavigate();
-
-  const formatearPrecio = (valor: number) =>
-    valor.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' });
-
   return (
-    <div className="container my-4">
-      <h1>Detalle del Servicio</h1>
-      <img id="imagen" src={servicio.imagen} alt={servicio.nombre} />
-      <h2 id="nombre">{servicio.nombre}</h2>
-      <p id="descripcion">{servicio.descripcion}</p>
-
-      <p id="codigo">
-        <strong>Código:</strong> <span>{servicio.codigo}</span>
-      </p>
-      <p id="tipo">
-        <strong>Categoría:</strong> <span>{servicio.categoria}</span>
-      </p>
-      <p id="duracion">
-        <strong>Duración de la sesión:</strong> <span>{servicio.duracion}</span>
-      </p>
-      <p id="modalidad">
-        <strong>Modalidad:</strong> <span>{servicio.modalidad}</span>
-      </p>
-      <p id="profesional">
-        <strong>Especialista a cargo:</strong> <span>{servicio.profesional}</span>
-      </p>
-
-      <div id="precio">Valor: {formatearPrecio(servicio.precio)}</div>
-
+    <div
+      className="card shadow-lg border-0 overflow-hidden"
+      style={{
+        maxWidth: '650px',
+        width: '100%',
+        borderRadius: '16px',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      }}
+    >
       <div
-        className="d-flex justify-content-center gap-3 mb-5 mx-auto"
-        style={{ maxWidth: '700px', width: '100%' }}
+        className="text-center text-white py-3"
+        style={{ backgroundColor: 'rgb(53, 90, 49)' }}
       >
-        <button
-          type="button"
-          className="btn btn-outline-secondary px-4 py-2 fw-semibold"
-          onClick={() => navigate('/servicios')}
-        >
-          ← Volver a Servicios
-        </button>
+        <h1 className="m-0 fs-4 fw-bold text-white">Vista Detallada del Servicio</h1>
+      </div>
 
-        <button
-          type="button"
-          className="nv-btn-primary px-4 py-2"
-          onClick={() =>
-            navigate('/reservas-horas', {
-              state: {
-                servicioPreseleccionado: servicio.nombre,
-                profesionalPreseleccionado:
-                  servicio.profesional !== 'Equipo NutriVida' ? servicio.profesional : '',
-              },
-            })
-          }
+      <div className="text-center p-3 bg-light">
+        <img
+          id="imagen"
+          src={servicio.imagen}
+          alt={servicio.nombre}
+          className="img-fluid rounded shadow-sm mx-auto"
+          style={{ maxHeight: '250px', objectFit: 'cover' }}
+        />
+      </div>
+
+      <div className="card-body p-4">
+        <h2
+          id="nombre"
+          className="card-title text-success fw-bold text-center mb-3 fs-3"
         >
-          Reservar este Servicio
-        </button>
+          {servicio.nombre}
+        </h2>
+
+        <p id="descripcion" className="text-muted text-center mb-4 lead fs-6">
+          {servicio.descripcion}
+        </p>
+
+        <hr className="my-4" />
+
+        <div className="row g-3 text-secondary text-center">
+          <div className="col-6 col-md-4">
+            <span className="d-block fw-bold text-dark">Código:</span>
+            <span id="codigo">{servicio.codigo}</span>
+          </div>
+          <div className="col-6 col-md-4">
+            <span className="d-block fw-bold text-dark">Tipo:</span>
+            <span id="tipo">{servicio.tipo}</span>
+          </div>
+          <div className="col-6 col-md-4">
+            <span className="d-block fw-bold text-dark">Duración:</span>
+            <span id="duracion">{servicio.duracion}</span>
+          </div>
+          <div className="col-6 col-md-4">
+            <span className="d-block fw-bold text-dark">Modalidad:</span>
+            <span id="modalidad">{servicio.modalidad}</span>
+          </div>
+          <div className="col-6 col-md-8">
+            <span className="d-block fw-bold text-dark">Profesional:</span>
+            <span id="profesional">{servicio.profesional}</span>
+          </div>
+        </div>
+
+        <div className="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+          <span id="precio" className="fs-4 fw-bold text-success">
+            Precio: ${servicio.precio} CLP
+          </span>
+          <Link to="/servicios" className="btn btn-outline-success fw-bold">
+            Volver a Servicios
+          </Link>
+        </div>
       </div>
     </div>
   );

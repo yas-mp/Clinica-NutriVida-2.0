@@ -13,7 +13,7 @@ test("Debe mostrar el detalle del servicio 1 cuando la URL tiene el parámetro /
     </MemoryRouter>
   );
 
-  expect(screen.getByText("Detalle del Servicio")).toBeTruthy();
-  expect(screen.getByText("Control de Peso y Enfermedades Metabólicas")).toBeTruthy();
-  expect(screen.getByText("NV-001")).toBeTruthy();
+  expect(screen.getByText("Vista Detallada del Servicio")).toBeTruthy();
+  expect(screen.getByText("Primera Consulta Nutricional")).toBeTruthy();
+  expect(screen.getByText("CN001")).toBeTruthy();
 });
