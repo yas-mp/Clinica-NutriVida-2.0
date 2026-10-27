@@ -241,7 +241,7 @@ footer {
 .nv-badge-categoria,
 .servicios .badge-tipo {
   align-self: flex-start;
-  background-color: var(--nv-soft-bg);
+  background-color: #198754;
   color: var(--nv-primary-dark);
   font-size: 0.76rem;
   font-weight: 700;
