@@ -50,23 +50,23 @@ const CardDetalleServicios: React.FC<CardDetalleServiciosProps> = ({ servicio })
 
         <div className="row g-3 text-secondary text-center">
           <div className="col-6 col-md-4">
-            <span className="d-block fw-bold text-dark">Código:</span>
+            <span className="d-block fw-bold text-dark">Código</span>
             <span id="codigo">{servicio.codigo}</span>
           </div>
           <div className="col-6 col-md-4">
-            <span className="d-block fw-bold text-dark">Tipo:</span>
+            <span className="d-block fw-bold text-dark">Tipo</span>
             <span id="tipo">{servicio.tipo}</span>
           </div>
           <div className="col-6 col-md-4">
-            <span className="d-block fw-bold text-dark">Duración:</span>
+            <span className="d-block fw-bold text-dark">Duración</span>
             <span id="duracion">{servicio.duracion}</span>
           </div>
           <div className="col-6 col-md-4">
-            <span className="d-block fw-bold text-dark">Modalidad:</span>
+            <span className="d-block fw-bold text-dark">Modalidad</span>
             <span id="modalidad">{servicio.modalidad}</span>
           </div>
           <div className="col-6 col-md-8">
-            <span className="d-block fw-bold text-dark">Profesional:</span>
+            <span className="d-block fw-bold text-dark">Profesional</span>
             <span id="profesional">{servicio.profesional}</span>
           </div>
         </div>
