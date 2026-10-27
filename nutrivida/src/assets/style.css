@@ -72,9 +72,6 @@ img {
   box-shadow: var(--nv-shadow-sm);
 }
 
-/* 
-NAVBAR Y FOOTER
-*/
 .navCustom {
   background: linear-gradient(135deg, var(--nv-primary-dark) 0%, var(--nv-primary-mid) 100%);
   min-height: 64px;
@@ -106,9 +103,6 @@ footer {
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
 }
 
-/* 
-CONTENEDORES DE SECCIÓN (REGISTRO, USUARIO, NUTRICIONISTA, BLOG)
-*/
 .section-registro,
 .section-blog,
 .section-usuario,
@@ -141,9 +135,6 @@ CONTENEDORES DE SECCIÓN (REGISTRO, USUARIO, NUTRICIONISTA, BLOG)
   border-bottom: 3px solid var(--nv-primary-dark);
 }
 
-/*
-COMPONENTES REUTILIZABLES (.nv-*) PARA LAS PÁGINAS TSX
-*/
 .nv-badge-subtitle {
   display: inline-block;
   background-color: var(--nv-soft-bg);
@@ -212,9 +203,6 @@ COMPONENTES REUTILIZABLES (.nv-*) PARA LAS PÁGINAS TSX
   padding: 0.85rem;
 }
 
-/*
-PROFESIONALES Y TARJETAS GENERALES
-*/
 .nv-card-profesional,
 .nv-card-servicio,
 .card-blog {
@@ -292,9 +280,6 @@ PROFESIONALES Y TARJETAS GENERALES
   min-height: 480px;
 }
 
-/*
-VISTA DE SERVICIOS Y DETALLE DE SERVICIO
-*/
 .servicios {
   background-color: var(--nv-bg-body);
   color: var(--nv-text-main);
