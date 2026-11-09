@@ -1,5 +1,6 @@
 package com.clinica.usuarios.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -14,13 +15,32 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor 
 @AllArgsConstructor 
 @Entity 
-@Table (name = "rol")
+@Table(name = "rol")
+@Schema(description = "Entidad que representa el catálogo de roles del sistema")
 public class RolUsuario {
+
     @Id 
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(
+        description = "ID del rol generado de forma automática",
+        example = "1",
+        accessMode = Schema.AccessMode.READ_ONLY
+    )
     private Long id;
 
-    @Column(name = "nombre_rol", nullable = false, length = 12)
-    private String nombre_rol;
+    @Column(name = "nombre_rol", nullable = false, length = 50)
+    @Schema(
+        description = "Nombre del rol en el sistema (ADMINISTRADOR, PACIENTE, NUTRICIONISTA)",
+        example = "ADMINISTRADOR",
+        requiredMode = Schema.RequiredMode.REQUIRED
+    )
+    private String nombreRol;
 
+    @Column(name = "descripcion", nullable = false, length = 100)
+    @Schema(
+        description = "Descripción de las facultades del rol dentro del sistema",
+        example = "Administrador encargado de gestionar usuarios y servicios",
+        requiredMode = Schema.RequiredMode.REQUIRED
+    )
+    private String descripcion;
 }
