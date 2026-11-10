@@ -103,10 +103,16 @@ const ReservasHoras: React.FC = () => {
 
     localStorage.setItem('nutrivida_citas', JSON.stringify(nuevasCitas));
 
-    setMensajeConfirmacion('¡Reserva confirmada! Redirigiendo a tu portal de paciente...');
+    setMensajeConfirmacion('¡Reserva confirmada! Redirigiendo al portal de pago...');
     setTimeout(() => {
-      navigate('/usuario');
-    }, 1500);
+      navigate('/pago', {
+        state: {
+          servicioNombre: servicio,
+          idCita: nuevaCita.id,
+          rutPaciente: nuevaCita.rutPaciente,
+        },
+      });
+    }, 1200);
   };
 
   const fechaMinima = new Date().toISOString().split('T')[0];
