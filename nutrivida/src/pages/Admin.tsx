@@ -65,10 +65,9 @@ export const Admin: React.FC = () => {
       setServicios(LISTADO_SERVICIOS);
       localStorage.setItem("nutrivida_servicios", JSON.stringify(LISTADO_SERVICIOS));
     } else {
-    setServicios(servicios);
+    setServicios(serviciosGuardados);
     }
     
-
     setListaUsuarios(usuarios);
     setListaReservas(reservas);
     setServicios(serviciosGuardados);
