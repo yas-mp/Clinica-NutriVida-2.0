@@ -76,13 +76,13 @@ public class Usuario {
     )
     private String region;
 
+    @Column(name = "activo", nullable = false)
+    @Schema(description = "Indica si el usuario está activo en el sistema", example = "true")
+    private Boolean activo = true;
+
     @ManyToOne 
     @JoinColumn(name = "rol_id", nullable = false)
-    @Column (name = "rol", nullable = false, length = 15)
-    @Schema(description = "Rol que identifica al usuario de los permisos dentro del sistema",
-        example = "Administrador",
-        requiredMode = Schema.RequiredMode.REQUIRED
-    )
+    @Schema(description = "Rol que identifica los permisos del usuario dentro del sistema")
     private RolUsuario rol;
     
 }
