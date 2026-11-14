@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 public class UsuarioRequestDTO {
     
     @NotBlank 
-    @Size (max = 12, min = 12)
+    @Size (max = 12, min = 11)
     @Schema(description = "Rut del usuario dentro de la clinica",
         example = "18.866.333-8",
         requiredMode = Schema.RequiredMode.REQUIRED
@@ -38,7 +38,7 @@ public class UsuarioRequestDTO {
     private String apellidos;
 
     @NotBlank(message = "El correo no puede estar vacío")
-    @Size(max = 50)
+    @Size(max = 100)
     @Schema(description = "Correo con el que el usuario inicia sesión",
         example = "yasna@gmail.com",
         requiredMode = Schema.RequiredMode.REQUIRED
@@ -66,5 +66,11 @@ public class UsuarioRequestDTO {
         requiredMode = Schema.RequiredMode.REQUIRED
     )
     private String region;
+
+    @Schema(description = "Id del rol del usuario",
+        example = "1",
+        requiredMode = Schema.RequiredMode.REQUIRED
+    )
+    private Long rolId;
 
 }
