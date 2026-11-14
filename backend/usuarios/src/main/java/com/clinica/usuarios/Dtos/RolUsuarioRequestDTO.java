@@ -25,7 +25,7 @@ public class RolUsuarioRequestDTO {
     @Size(max = 100)
     @Schema(
         description = "Descripción del rol que se le asignara al usuario",
-        example = "",
+        example = "Administrador - Encargado de la gestión de usuarios, servicios y reservas",
         requiredMode=Schema.RequiredMode.REQUIRED
     )
     private String descripcion;
