@@ -1,107 +1,157 @@
 package com.clinica.servicios.service;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.clinica.servicios.Dtos.ServicioRequestDTO;
 import com.clinica.servicios.Dtos.ServicioResponseDTO;
 import com.clinica.servicios.model.Servicio;
 import com.clinica.servicios.model.TipoServicio;
 import com.clinica.servicios.repository.ServicioRepository;
 import com.clinica.servicios.repository.TipoServicioRepository;
+
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings("null")
 public class ServicioService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ServicioService.class);
 
     private final ServicioRepository servicioRepository;
     private final TipoServicioRepository tipoServicioRepository;
 
+    @Transactional(readOnly = true)
     public List<ServicioResponseDTO> listarServicios(String busqueda, String tipo) {
-        List<Servicio> servicios = servicioRepository.findAll();
+        String textoBuscado = normalizar(busqueda);
+        String tipoBuscado = normalizar(tipo);
 
-        return servicios.stream()
-            .filter(serv -> {
-                boolean coincideTexto = (busqueda == null || busqueda.isBlank())
-                    || serv.getNombre().toLowerCase().contains(busqueda.toLowerCase())
-                    || serv.getCodigo().toLowerCase().contains(busqueda.toLowerCase());
+        logger.info("Consultando catálogo de servicios. búsqueda='{}', tipo='{}'", busqueda, tipo);
 
-                boolean coincideTipo = (tipo == null || tipo.isBlank() || tipo.equalsIgnoreCase("Todos"))
-                    || serv.getTipo().getNombreTipo().equalsIgnoreCase(tipo);
-
-                return coincideTexto && coincideTipo;
-            })
-            .map(this::mapearAResponseDTO)
-            .collect(Collectors.toList());
+        return servicioRepository.findAll(Sort.by(Sort.Direction.ASC, "id")).stream()
+                .filter(servicio -> coincideTexto(servicio, textoBuscado))
+                .filter(servicio -> coincideTipo(servicio, tipoBuscado))
+                .map(this::mapearAResponseDTO)
+                .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public ServicioResponseDTO obtenerPorId(Long id) {
-        Servicio servicio = servicioRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Servicio no encontrado con ID: " + id));
-        return mapearAResponseDTO(servicio);
+        logger.info("Consultando servicio por ID: {}", id);
+        return mapearAResponseDTO(buscarServicio(id));
     }
 
+    @Transactional
     public ServicioResponseDTO crearServicio(ServicioRequestDTO dto) {
-        TipoServicio tipo = tipoServicioRepository.findById(dto.getTipoId())
-            .orElseThrow(() -> new RuntimeException("Tipo de servicio no encontrado con ID: " + dto.getTipoId()));
+        String codigo = dto.getCodigo().trim().toUpperCase(Locale.ROOT);
+        logger.info("Intentando crear servicio con código: {}", codigo);
+
+        if (servicioRepository.findByCodigoIgnoreCase(codigo).isPresent()) {
+            throw new RuntimeException("Ya existe un servicio con el código: " + codigo);
+        }
+
+        TipoServicio tipo = buscarTipo(dto.getTipoId());
 
         Servicio nuevo = new Servicio(
-            null,
-            dto.getCodigo(),
-            dto.getNombre(),
-            dto.getDuracion(),
-            dto.getModalidad(),
-            dto.getProfesional(),
-            dto.getPrecio(),
-            dto.getDescripcion(),
-            dto.getImagen(),
-            tipo
-        );
+                null,
+                codigo,
+                dto.getNombre().trim(),
+                dto.getDuracion().trim(),
+                dto.getModalidad().trim(),
+                dto.getProfesional().trim(),
+                dto.getPrecio(),
+                dto.getDescripcion().trim(),
+                dto.getImagen().trim(),
+                tipo);
 
-        return mapearAResponseDTO(servicioRepository.save(nuevo));
+        Servicio guardado = servicioRepository.save(nuevo);
+        logger.info("Servicio creado exitosamente con ID: {}", guardado.getId());
+        return mapearAResponseDTO(guardado);
     }
 
+    @Transactional
     public ServicioResponseDTO actualizarServicio(Long id, ServicioRequestDTO dto) {
-        Servicio existente = servicioRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Servicio no encontrado con ID: " + id));
+        logger.info("Actualizando servicio con ID: {}", id);
+        Servicio existente = buscarServicio(id);
+        String codigo = dto.getCodigo().trim().toUpperCase(Locale.ROOT);
 
-        TipoServicio tipo = tipoServicioRepository.findById(dto.getTipoId())
-            .orElseThrow(() -> new RuntimeException("Tipo de servicio no encontrado con ID: " + dto.getTipoId()));
+        servicioRepository.findByCodigoIgnoreCase(codigo)
+                .filter(servicio -> !servicio.getId().equals(id))
+                .ifPresent(servicio -> {
+                    throw new RuntimeException("Ya existe un servicio con el código: " + codigo);
+                });
 
-        existente.setCodigo(dto.getCodigo());
-        existente.setNombre(dto.getNombre());
-        existente.setDuracion(dto.getDuracion());
-        existente.setModalidad(dto.getModalidad());
-        existente.setProfesional(dto.getProfesional());
+        TipoServicio tipo = buscarTipo(dto.getTipoId());
+
+        existente.setCodigo(codigo);
+        existente.setNombre(dto.getNombre().trim());
+        existente.setDuracion(dto.getDuracion().trim());
+        existente.setModalidad(dto.getModalidad().trim());
+        existente.setProfesional(dto.getProfesional().trim());
         existente.setPrecio(dto.getPrecio());
-        existente.setDescripcion(dto.getDescripcion());
-        existente.setImagen(dto.getImagen());
+        existente.setDescripcion(dto.getDescripcion().trim());
+        existente.setImagen(dto.getImagen().trim());
         existente.setTipo(tipo);
 
         return mapearAResponseDTO(servicioRepository.save(existente));
     }
 
+    @Transactional
     public void eliminarServicio(Long id) {
-        if (!servicioRepository.existsById(id)) {
-            throw new RuntimeException("Servicio no encontrado con ID: " + id);
-        }
-        servicioRepository.deleteById(id);
+        Servicio servicio = buscarServicio(id);
+        logger.info("Eliminando servicio con ID: {}", id);
+        servicioRepository.delete(servicio);
     }
 
-    private ServicioResponseDTO mapearAResponseDTO(Servicio s) {
+    private Servicio buscarServicio(Long id) {
+        return servicioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Servicio no encontrado con ID: " + id));
+    }
+
+    private TipoServicio buscarTipo(Long tipoId) {
+        return tipoServicioRepository.findById(tipoId)
+                .orElseThrow(() -> new RuntimeException("Tipo de servicio no encontrado con ID: " + tipoId));
+    }
+
+    private boolean coincideTexto(Servicio servicio, String textoBuscado) {
+        if (textoBuscado.isEmpty()) {
+            return true;
+        }
+        return normalizar(servicio.getNombre()).contains(textoBuscado)
+                || normalizar(servicio.getCodigo()).contains(textoBuscado);
+    }
+
+    private boolean coincideTipo(Servicio servicio, String tipoBuscado) {
+        if (tipoBuscado.isEmpty() || "todos".equals(tipoBuscado)) {
+            return true;
+        }
+        return servicio.getTipo() != null
+                && normalizar(servicio.getTipo().getNombreTipo()).equals(tipoBuscado);
+    }
+
+    private String normalizar(String valor) {
+        return valor == null ? "" : valor.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private ServicioResponseDTO mapearAResponseDTO(Servicio servicio) {
         return new ServicioResponseDTO(
-            s.getId(),
-            s.getCodigo(),
-            s.getNombre(),
-            s.getTipo().getNombreTipo(),
-            s.getDuracion(),
-            s.getModalidad(),
-            s.getProfesional(),
-            s.getPrecio(),
-            s.getDescripcion(),
-            s.getImagen()
-        );
+                servicio.getId(),
+                servicio.getCodigo(),
+                servicio.getNombre(),
+                servicio.getTipo() != null ? servicio.getTipo().getNombreTipo() : null,
+                servicio.getTipo() != null ? servicio.getTipo().getId() : null,
+                servicio.getDuracion(),
+                servicio.getModalidad(),
+                servicio.getProfesional(),
+                servicio.getPrecio(),
+                servicio.getDescripcion(),
+                servicio.getImagen());
     }
 }
