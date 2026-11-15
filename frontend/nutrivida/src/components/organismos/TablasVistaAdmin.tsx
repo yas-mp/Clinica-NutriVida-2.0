@@ -1,5 +1,6 @@
 import React from "react";
 import Boton from "../atomos/Boton";
+import type { ServicioNutricional } from "../../services/servicioService";
 
 interface TablaUsuariosProps {
   listaUsuarios: any[];
@@ -145,7 +146,7 @@ export const TablaReservasAdmin: React.FC<TablaReservasProps> = ({
 };
 
 interface TablaServiciosProps {
-  servicios: any[];
+  servicios: ServicioNutricional[];
   onEliminarServicio: (id: number) => void;
   onModificarServicio: (id: number) => void;
 }
@@ -162,6 +163,7 @@ export const TablaServiciosAdmin: React.FC<TablaServiciosProps> = ({
           <tr>
             <th>Código</th>
             <th>Nombre del Servicio</th>
+            <th>Tipo</th>
             <th>Profesional A Cargo</th>
             <th>Precio</th>
             <th>Acción</th>
@@ -170,7 +172,7 @@ export const TablaServiciosAdmin: React.FC<TablaServiciosProps> = ({
         <tbody>
           {servicios.length === 0 ? (
             <tr>
-              <td colSpan={5} className="text-center py-3">
+              <td colSpan={6} className="text-center py-3">
                 No hay servicios registrados.
               </td>
             </tr>
@@ -181,6 +183,9 @@ export const TablaServiciosAdmin: React.FC<TablaServiciosProps> = ({
                   <strong>{servi.codigo}</strong>
                 </td>
                 <td>{servi.nombre}</td>
+                <td>
+                  <span className="badge bg-success">{servi.tipo || "Sin tipo"}</span>
+                </td>
                 <td>{servi.profesional}</td>
                 <td>${servi.precio}</td>
                 <td>
