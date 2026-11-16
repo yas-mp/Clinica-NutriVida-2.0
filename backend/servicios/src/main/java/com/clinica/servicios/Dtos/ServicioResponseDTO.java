@@ -26,6 +26,9 @@ public class ServicioResponseDTO {
     @Schema(description = "Nombre del tipo o categoría del servicio", example = "Consulta")
     private String tipo;
 
+    @Schema(description = "ID del tipo o categoría del servicio", example = "1")
+    private Long tipoId;
+
     @Schema(description = "Duración del servicio", example = "50 minutos")
     private String duracion;
 

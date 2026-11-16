@@ -27,7 +27,7 @@ public class TipoServicio {
     )
     private Long id;
 
-    @Column(name = "nombre_tipo", nullable = false, length = 50)
+    @Column(name = "nombre_tipo", nullable = false, unique = true, length = 50)
     @Schema(
         description = "Nombre del tipo en el sistema (Consulta, Plan especializado, Evaluación, Taller grupal)",
         example = "Consulta",

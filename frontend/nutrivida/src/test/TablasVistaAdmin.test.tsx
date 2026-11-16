@@ -45,7 +45,21 @@ test("TablaReservasAdmin renderiza reservas y permite cancelar", () => {
 
 test("TablaServiciosAdmin renderiza servicios y ejecuta eliminación por ID", () => {
   const eliminar = vi.fn();
-  const servicios = [{ id: 99, codigo: "S1", nombre: "Consulta", precio: 20000 }];
+  const servicios = [
+    {
+      id: 99,
+      codigo: "S1",
+      nombre: "Consulta",
+      tipo: "Plan especializado",
+      tipoId: 1,
+      duracion: "30 minutos",
+      modalidad: "Presencial",
+      profesional: "Nutricionista",
+      precio: 20000,
+      descripcion: "Consulta de prueba",
+      imagen: "",
+    },
+  ];
 
   render(
     <TablaServiciosAdmin

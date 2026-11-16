@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import type { ServicioNutricional } from '../data/ListadoServicios';
+import type { ServicioNutricional } from '../../services/servicioService';
+import { resolverImagenServicio } from '../../services/servicioImagenes';
 
 interface CardDetalleServiciosProps {
   servicio: ServicioNutricional;
@@ -27,7 +28,7 @@ const CardDetalleServicios: React.FC<CardDetalleServiciosProps> = ({ servicio })
       <div className="text-center p-3 bg-light">
         <img
           id="imagen"
-          src={servicio.imagen}
+          src={resolverImagenServicio(servicio.imagen)}
           alt={servicio.nombre}
           className="img-fluid rounded shadow-sm mx-auto"
           style={{ maxHeight: '250px', objectFit: 'cover' }}
