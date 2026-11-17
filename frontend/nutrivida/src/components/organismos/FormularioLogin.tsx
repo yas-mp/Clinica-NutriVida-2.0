@@ -3,7 +3,6 @@ import CampoCorreo from "../moleculas/CampoCorreo";
 import CampoContrasena from "../moleculas/CampoContrasena";
 import Boton from "../atomos/Boton";
 import { Link, useNavigate } from "react-router-dom";
-import type { UsuarioRegistrado } from "../../pages/RegistroUsuario";
 import { LISTADO_PROFESIONALES } from "../data/ListadoProfesionales";
 
 function FormularioLogin() {
@@ -11,7 +10,7 @@ function FormularioLogin() {
   const [contrasena, setContrasena] = useState("");
   const navigate = useNavigate();
 
-  const manejarEnvio = (e: React.FormEvent<HTMLFormElement>) => {
+  const manejarEnvio = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (correo.trim() === "") {
@@ -71,20 +70,41 @@ function FormularioLogin() {
       return;
     }
 
-    const usuariosRegistrados: UsuarioRegistrado[] = JSON.parse(
-      localStorage.getItem("nutrivida_usuarios") || "[]"
-    );
+    try {
+      const respuesta = await fetch("http://localhost:8081/api/usuarios/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          correo: correoLimpio,
+          password: contrasena,
+        }),
+      });
 
-    const usuarioEncontrado = usuariosRegistrados.find(
-      (u) => u.correo.toLowerCase() === correoLimpio && u.clave === contrasena
-    );
+      if (!respuesta.ok) {
+        alert("Correo o contraseña incorrectos. Por favor verifica tus datos.");
+        return;
+      }
 
-    if (usuarioEncontrado) {
-      localStorage.setItem("nutrivida_usuario_activo", JSON.stringify(usuarioEncontrado));
-      navigate("/usuario");
-      return;
+      const usuarioLogeado = await respuesta.json();
+      const { clave,password, ...usuarioSinClave } = usuarioLogeado;
+
+      localStorage.setItem("nutrivida_usuario_activo", JSON.stringify(usuarioSinClave));
+
+      const rolUpper = String(usuarioSinClave.rol || "").toUpperCase();
+
+      if (rolUpper.includes("ADMIN")) {
+        navigate("/admin");
+      } else if (rolUpper.includes("NUTRI")) {
+        navigate("/nutricionista");
+      } else {
+        navigate("/usuario");
+      }
+    } catch (error) {
+      console.error("Error en inicio de sesión: ", error);
+      alert("Error de conexión con el servidor de usuarios...");
     }
-    alert("Correo o contraseña incorrectos. Por favor verifica tus datos.");
   };
 
   return (
