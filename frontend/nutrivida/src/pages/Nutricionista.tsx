@@ -2,18 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { CitaMedica } from './ReservasHoras';
 import type { UsuarioRegistrado } from './RegistroUsuario';
-import type { MedicionClinica } from './Usuario';
 
 const Nutricionista: React.FC = () => {
   const navigate = useNavigate();
 
-  // 1. Obtener directamente los datos del profesional en sesión activa
   const sesionActiva = localStorage.getItem('nutrivida_usuario_activo');
   const usuarioLogueado = sesionActiva ? JSON.parse(sesionActiva) : null;
 
   const nutricionista = usuarioLogueado
     ? {
-        nombre: `${usuarioLogueado.nombres || ''} ${usuarioLogueado.apellidos || ''}`.trim() || usuarioLogueado.nombre || 'Profesional NutriVida',
+        nombre:
+          `${usuarioLogueado.nombres || ''} ${usuarioLogueado.apellidos || ''}`.trim() ||
+          usuarioLogueado.nombre ||
+          'Profesional NutriVida',
         run: usuarioLogueado.rut || usuarioLogueado.run || 'Sin RUT',
         correo: usuarioLogueado.correo || '',
         rol: usuarioLogueado.especialidad || usuarioLogueado.rol || 'Nutricionista Clínico',
@@ -35,74 +36,88 @@ const Nutricionista: React.FC = () => {
       navigate('/login');
       return;
     }
-    
+
     const rolUpper = String(usuarioLogueado.rol || '').toUpperCase();
     const esNutri = rolUpper.includes('NUTRI') || rolUpper === 'NUTRICIONISTA';
-    
+
     if (!esNutri) {
-      alert("No tienes permisos de Nutricionista para acceder a esta vista.");
+      alert('No tienes permisos de Nutricionista para acceder a esta vista.');
       navigate('/login');
       return;
     }
 
     const nombreCompleto = `${usuarioLogueado.nombres || ''} ${usuarioLogueado.apellidos || ''}`.trim();
 
-    const todasLasCitas: any[] = JSON.parse(
-      localStorage.getItem('nutrivida_citas') ||
-        localStorage.getItem('nutrivida_reservas') ||
-        '[]'
-    );
+    fetch('http://localhost:8083/api/reservas')
+      .then((res) => {
+        if (!res.ok) throw new Error('Error al cargar reservas');
+        return res.json();
+      })
+      .then((todasLasCitas) => {
+        const misCitas = todasLasCitas.filter((c: any) => {
+          if (!c.profesional) return true;
 
-    const misCitas = todasLasCitas.filter((c: any) => {
-      if (!c.profesional) return true;
+          const profCita = c.profesional.toLowerCase();
+          const profActual = nombreCompleto.toLowerCase();
+          const primerNombre = (usuarioLogueado.nombres || '').toLowerCase();
 
-      const profCita = c.profesional.toLowerCase();
-      const profActual = nombreCompleto.toLowerCase();
-      const primerNombre = (usuarioLogueado.nombres || '').toLowerCase();
+          return (
+            profCita.includes(profActual) ||
+            profActual.includes(profCita) ||
+            (primerNombre && profCita.includes(primerNombre))
+          );
+        });
+        setCitasAgenda(misCitas);
+      })
+      .catch((error) => console.error('Error en citas:', error));
 
-      return (
-        profCita.includes(profActual) ||
-        profActual.includes(profCita) ||
-        (primerNombre && profCita.includes(primerNombre))
-      );
-    });
-
-    setCitasAgenda(misCitas);
-
-    const todosLosUsuarios: UsuarioRegistrado[] = JSON.parse(
-      localStorage.getItem('nutrivida_usuarios') || '[]'
-    );
-    const soloPacientes = todosLosUsuarios.filter((u) => u.rol === 'PACIENTE' || !u.rol);
-    setPacientes(soloPacientes);
+    fetch('http://localhost:8081/api/usuarios')
+      .then((res) => {
+        if (!res.ok) throw new Error('Error al cargar usuarios');
+        return res.json();
+      })
+      .then((todosLosUsuarios: UsuarioRegistrado[]) => {
+        const soloPacientes = todosLosUsuarios.filter(
+          (u) => String(u.rol || '').toUpperCase() === 'PACIENTE' || !u.rol
+        );
+        setPacientes(soloPacientes);
+      })
+      .catch((error) => console.error('Error en pacientes:', error));
   }, [navigate, sesionActiva]);
 
-  const cambiarEstadoCita = (idCita: string, nuevoEstado: CitaMedica['estado']) => {
-    const todasLasCitas: any[] = JSON.parse(
-      localStorage.getItem('nutrivida_citas') ||
-        localStorage.getItem('nutrivida_reservas') ||
-        '[]'
-    );
+  const cambiarEstadoCita = async (idCita: string, nuevoEstado: CitaMedica['estado']) => {
+    try {
+      const respuesta = await fetch(
+        `http://localhost:8083/api/reservas/${idCita}/estado?estado=${nuevoEstado}`,
+        {
+          method: 'PATCH',
+        }
+      );
 
-    const actualizadasGlobales = todasLasCitas.map((c) =>
-      c.id === idCita ? { ...c, estado: nuevoEstado } : c
-    );
+      if (!respuesta.ok) {
+        throw new Error('No se pudo actualizar el estado de la cita.');
+      }
 
-    localStorage.setItem('nutrivida_citas', JSON.stringify(actualizadasGlobales));
-    localStorage.setItem('nutrivida_reservas', JSON.stringify(actualizadasGlobales));
-
-    setCitasAgenda((prev) =>
-      prev.map((c) => (c.id === idCita ? { ...c, estado: nuevoEstado } : c))
-    );
+      setCitasAgenda((prev) =>
+        prev.map((c) =>
+          String(c.id) === String(idCita) ? { ...c, estado: nuevoEstado } : c
+        )
+      );
+    } catch (error) {
+      console.error('Error al cambiar estado:', error);
+      alert('Error al actualizar el estado de la cita en el servidor.');
+    }
   };
-
-  const handleGuardarFicha = (e: React.FormEvent<HTMLFormElement>) => {
+  
+  const handleGuardarFicha = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setMensajeFicha('');
+
     const peso = parseFloat(pesoKg);
     const tallaM = parseFloat(tallaCm) / 100;
     const imc = Number((peso / (tallaM * tallaM)).toFixed(1));
 
-    const nuevaFicha: MedicionClinica = {
-      id: `MED-${Date.now()}`,
+    const nuevaFicha = {
       rutPaciente: rutFicha.replace(/[^0-9kK]/g, '').toUpperCase(),
       fecha: new Date().toISOString().split('T')[0],
       pesoKg: peso,
@@ -114,17 +129,30 @@ const Nutricionista: React.FC = () => {
       nutricionista: nutricionista?.nombre || 'Nutricionista',
     };
 
-    const fichas: MedicionClinica[] = JSON.parse(
-      localStorage.getItem('nutrivida_fichas') || '[]'
-    );
-    localStorage.setItem('nutrivida_fichas', JSON.stringify([...fichas, nuevaFicha]));
+    try {
+      const respuesta = await fetch('http://localhost:8084/api/fichas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(nuevaFicha),
+      });
 
-    setMensajeFicha(`Mediciones y plan guardados para RUT ${nuevaFicha.rutPaciente}`);
-    setPesoKg('');
-    setTallaCm('');
-    setCinturaCm('');
-    setPlanAlimenticio('');
-    setRutFicha('');
+      if (!respuesta.ok) {
+        const errorTexto = await respuesta.text();
+        throw new Error(errorTexto || 'No se pudo guardar la ficha clínica.');
+      }
+
+      setMensajeFicha(`Mediciones y plan guardados para RUT ${nuevaFicha.rutPaciente}`);
+      setPesoKg('');
+      setTallaCm('');
+      setCinturaCm('');
+      setPlanAlimenticio('');
+      setRutFicha('');
+    } catch (error: any) {
+      console.error('Error al guardar ficha:', error);
+      alert(error.message || 'Error de conexión con el servidor de fichas (puerto 8084).');
+    }
   };
 
   const handleCerrarSesion = () => {
