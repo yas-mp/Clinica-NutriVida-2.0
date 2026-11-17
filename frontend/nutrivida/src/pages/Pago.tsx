@@ -4,8 +4,9 @@ import { LISTADO_SERVICIOS } from '../components/data/ListadoServicios';
 import type { ServicioNutricional } from '../components/data/ListadoServicios';
 import CardResumenPago from '../components/moleculas/CardResumenPago';
 import CardComprobantePago from '../components/moleculas/CardComprobantePago';
-import type { ComprobantePago } from '../components/moleculas/CardComprobantePago';
 import FormularioPago from '../components/organismos/FormularioPago';
+import { obtenerUsuarioIdSesion } from '../services/pagoService';
+import type { Pago as PagoRegistrado } from '../services/pagoService';
 
 const Pago: React.FC = () => {
   const location = useLocation();
@@ -20,7 +21,7 @@ const Pago: React.FC = () => {
   const [servicioAPagar, setServicioAPagar] = useState<ServicioNutricional>(
     LISTADO_SERVICIOS[0]
   );
-  const [comprobante, setComprobante] = useState<ComprobantePago | null>(null);
+  const [comprobante, setComprobante] = useState<PagoRegistrado | null>(null);
 
   useEffect(() => {
     if (stateNav?.servicio) {
@@ -42,13 +43,13 @@ const Pago: React.FC = () => {
     }
   }, [stateNav]);
 
-  const registrarPagoExitoso = (nuevoComprobante: ComprobantePago) => {
-    const pagosPrevios: ComprobantePago[] = JSON.parse(
+  const registrarPagoExitoso = (nuevoPago: PagoRegistrado) => {
+    const pagosPrevios: PagoRegistrado[] = JSON.parse(
       localStorage.getItem('nutrivida_pagos') || '[]'
     );
     localStorage.setItem(
       'nutrivida_pagos',
-      JSON.stringify([...pagosPrevios, nuevoComprobante])
+      JSON.stringify([...pagosPrevios, nuevoPago])
     );
 
     if (stateNav?.idCita) {
@@ -59,7 +60,7 @@ const Pago: React.FC = () => {
       localStorage.setItem('nutrivida_citas', JSON.stringify(citasActualizadas));
     }
 
-    setComprobante(nuevoComprobante);
+    setComprobante(nuevoPago);
   };
 
   return (
@@ -73,6 +74,8 @@ const Pago: React.FC = () => {
             <FormularioPago
               servicio={servicioAPagar}
               rutInicial={stateNav?.rutPaciente}
+              idReserva={stateNav?.idCita}
+              usuarioId={obtenerUsuarioIdSesion()}
               alConfirmarPago={registrarPagoExitoso}
             />
           </div>

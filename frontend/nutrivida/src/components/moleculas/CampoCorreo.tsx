@@ -6,20 +6,23 @@ type CorreoProps = {
     nombre: string;
     placeHolder?: string;
     valor: string;
+    maxLength?: number;
     alCambiar: (valor:string) => void;
 }
 
-function CampoCorreo({etiqueta, tipo, nombre, valor, alCambiar} : CorreoProps){
+function CampoCorreo({etiqueta, tipo, nombre, placeHolder, valor, maxLength, alCambiar} : CorreoProps){
     return(
         <div className="mb-3">
-            <label htmlFor="correo" className="form-label d-block">
+            <label htmlFor={nombre} className="form-label d-block">
                 {etiqueta}
             </label>
             <Input
             tipo={tipo}
             nombre={nombre}
             className="form-control"
+            placeholder={placeHolder}
             valor={valor}
+            maxLength={maxLength}
             alCambiar={alCambiar}
             />
         </div>

@@ -31,7 +31,6 @@ const DetalleServicio: React.FC = () => {
       return;
     }
     // Carga del detalle desde la API: el estado se actualiza después del fetch.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void cargarServicio();
   }, [cargarServicio, idValido]);
 

@@ -1,0 +1,96 @@
+CREATE TABLE pagos (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    numero_comprobante VARCHAR(20) NOT NULL UNIQUE,
+    usuario_id BIGINT NULL,
+    rut_paciente VARCHAR(15) NOT NULL,
+    titular VARCHAR(120) NOT NULL,
+    correo VARCHAR(100) NOT NULL,
+    id_reserva VARCHAR(40) NULL,
+    id_servicio BIGINT NULL,
+    codigo_servicio VARCHAR(10) NOT NULL,
+    servicio_nombre VARCHAR(150) NOT NULL,
+    metodo_pago VARCHAR(20) NOT NULL,
+    ultimos4_digitos VARCHAR(4) NOT NULL,
+    monto INT NOT NULL,
+    estado VARCHAR(20) NOT NULL DEFAULT 'Aprobado',
+    observacion VARCHAR(255) NULL,
+    fecha_pago DATE NOT NULL,
+    fecha_creacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_pagos_usuario ON pagos (usuario_id);
+CREATE INDEX idx_pagos_rut ON pagos (rut_paciente);
+CREATE INDEX idx_pagos_estado ON pagos (estado);
+
+INSERT INTO pagos (
+    numero_comprobante,
+    usuario_id,
+    rut_paciente,
+    titular,
+    correo,
+    id_reserva,
+    id_servicio,
+    codigo_servicio,
+    servicio_nombre,
+    metodo_pago,
+    ultimos4_digitos,
+    monto,
+    estado,
+    observacion,
+    fecha_pago,
+    fecha_creacion
+) VALUES
+(
+    'PAY-100001',
+    1,
+    '188663338',
+    'Diego Rivas',
+    'diego.rivas@correo.cl',
+    'CITA-1700000000001',
+    1,
+    'CN001',
+    'Primera Consulta Nutricional',
+    'Debito',
+    '6512',
+    35000,
+    'Aprobado',
+    'Pago de simulación cargado por Flyway',
+    '2026-11-10',
+    '2026-11-10 10:15:00'
+),
+(
+    'PAY-100002',
+    2,
+    '201112223',
+    'María Fernanda González',
+    'maria.gonzalez@correo.cl',
+    NULL,
+    2,
+    'CN002',
+    'Consulta nutricional de seguimiento',
+    'Credito',
+    '4821',
+    25000,
+    'Aprobado',
+    'Pago de simulación cargado por Flyway',
+    '2026-11-12',
+    '2026-11-12 16:40:00'
+),
+(
+    'PAY-100003',
+    NULL,
+    '145556667',
+    'Carlos Andrés Muñoz',
+    'carlos.munoz@correo.cl',
+    'CITA-1700000000003',
+    6,
+    'PL002',
+    'Plan pérdida de peso (3 meses)',
+    'Prepago',
+    '3094',
+    170000,
+    'Pendiente',
+    'Pago de simulación pendiente de confirmación',
+    '2026-11-16',
+    '2026-11-16 09:05:00'
+);

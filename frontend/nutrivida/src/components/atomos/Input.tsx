@@ -5,10 +5,11 @@ type Props = {
     nombre?: string;
     valor: string;
     placeholder?: string;
+    maxLength?: number;
     alCambiar: (valor:string) => void;
 }
 
-function Input({tipo, id,className,nombre, valor, placeholder, alCambiar} : Props){
+function Input({tipo, id,className,nombre, valor, placeholder, maxLength, alCambiar} : Props){
     return(
         <input
         type={tipo}
@@ -17,6 +18,7 @@ function Input({tipo, id,className,nombre, valor, placeholder, alCambiar} : Prop
         name={nombre}
         value={valor}
         placeholder={placeholder}
+        maxLength={maxLength}
         onChange={(e) => alCambiar(e.target.value)}
         style={{ backgroundColor: "#ffffff", color: "#212529" }}
         >

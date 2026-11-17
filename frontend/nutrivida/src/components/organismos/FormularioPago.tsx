@@ -2,17 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Boton from '../atomos/Boton';
 import type { ServicioNutricional } from '../data/ListadoServicios';
-import type { ComprobantePago } from '../moleculas/CardComprobantePago';
+import { obtenerMensajeError, registrarPago } from '../../services/pagoService';
+import type { Pago } from '../../services/pagoService';
 
 interface FormularioPagoProps {
   servicio: ServicioNutricional;
   rutInicial?: string;
-  alConfirmarPago: (comprobante: ComprobantePago) => void;
+  idReserva?: string;
+  usuarioId?: number;
+  alConfirmarPago: (pago: Pago) => void;
 }
 
 const FormularioPago: React.FC<FormularioPagoProps> = ({
   servicio,
   rutInicial = '',
+  idReserva,
+  usuarioId,
   alConfirmarPago,
 }) => {
   const navigate = useNavigate();
@@ -25,6 +30,7 @@ const FormularioPago: React.FC<FormularioPagoProps> = ({
   const [vencimiento, setVencimiento] = useState<string>('');
   const [cvv, setCvv] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [enviando, setEnviando] = useState<boolean>(false);
 
   useEffect(() => {
     const sesionStr = localStorage.getItem('nutrivida_usuario_activo');
@@ -44,9 +50,13 @@ const FormularioPago: React.FC<FormularioPagoProps> = ({
     }
   }, [rutInicial]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
+
+    if (enviando) {
+      return;
+    }
 
     if (titular.trim().length < 3) {
       setError('Debe ingresar el nombre completo del titular de la tarjeta');
@@ -80,20 +90,30 @@ const FormularioPago: React.FC<FormularioPagoProps> = ({
       return;
     }
 
-    const nuevoComprobante: ComprobantePago = {
-      idTransaccion: `PAY-${Date.now().toString().slice(-6)}`,
-      servicioNombre: servicio.nombre,
-      codigoServicio: servicio.codigo,
-      monto: servicio.precio,
-      titular: titular.trim(),
-      rut: rutLimpio,
-      correo: correo.trim(),
-      metodoPago,
-      ultimos4Digitos: tarjetaLimpia.slice(-4),
-      fechaPago: new Date().toISOString().split('T')[0],
-    };
+    setEnviando(true);
 
-    alConfirmarPago(nuevoComprobante);
+    try {
+      const pago = await registrarPago({
+        usuarioId,
+        rutPaciente: rutLimpio,
+        titular: titular.trim(),
+        correo: correo.trim(),
+        idReserva,
+        idServicio: servicio.id,
+        codigoServicio: servicio.codigo,
+        servicioNombre: servicio.nombre,
+        metodoPago,
+        ultimos4Digitos: tarjetaLimpia.slice(-4),
+        monto: servicio.precio,
+        estado: 'Aprobado',
+      });
+
+      alConfirmarPago(pago);
+    } catch (err) {
+      setError(obtenerMensajeError(err));
+    } finally {
+      setEnviando(false);
+    }
   };
 
   return (
@@ -121,6 +141,7 @@ const FormularioPago: React.FC<FormularioPagoProps> = ({
             className="form-select"
             value={metodoPago}
             onChange={(e) => setMetodoPago(e.target.value)}
+            disabled={enviando}
           >
             <option value="Debito">Tarjeta de Débito (Redcompra / Webpay)</option>
             <option value="Credito">Tarjeta de Crédito Bancaria</option>
@@ -140,6 +161,7 @@ const FormularioPago: React.FC<FormularioPagoProps> = ({
               placeholder="Ej: Diego Rivas"
               value={titular}
               onChange={(e) => setTitular(e.target.value)}
+              disabled={enviando}
               required
             />
           </div>
@@ -156,6 +178,7 @@ const FormularioPago: React.FC<FormularioPagoProps> = ({
               maxLength={9}
               value={rut}
               onChange={(e) => setRut(e.target.value)}
+              disabled={enviando}
               required
             />
           </div>
@@ -172,6 +195,7 @@ const FormularioPago: React.FC<FormularioPagoProps> = ({
             placeholder="cliente@ejemplo.com"
             value={correo}
             onChange={(e) => setCorreo(e.target.value)}
+            disabled={enviando}
             required
           />
         </div>
@@ -188,6 +212,7 @@ const FormularioPago: React.FC<FormularioPagoProps> = ({
             maxLength={16}
             value={numeroTarjeta}
             onChange={(e) => setNumeroTarjeta(e.target.value)}
+            disabled={enviando}
             required
           />
         </div>
@@ -205,6 +230,7 @@ const FormularioPago: React.FC<FormularioPagoProps> = ({
               maxLength={5}
               value={vencimiento}
               onChange={(e) => setVencimiento(e.target.value)}
+              disabled={enviando}
               required
             />
           </div>
@@ -221,6 +247,7 @@ const FormularioPago: React.FC<FormularioPagoProps> = ({
               maxLength={3}
               value={cvv}
               onChange={(e) => setCvv(e.target.value)}
+              disabled={enviando}
               required
             />
           </div>
@@ -231,13 +258,15 @@ const FormularioPago: React.FC<FormularioPagoProps> = ({
             type="button"
             className="btn btn-outline-secondary w-50 fw-semibold"
             onClick={() => navigate('/servicios')}
+            disabled={enviando}
           >
             Cancelar
           </button>
           <Boton
-            label={`Pagar $${servicio.precio} CLP`}
+            label={enviando ? 'Procesando pago...' : `Pagar $${servicio.precio} CLP`}
             tipo="submit"
             className="btn btn-success w-50 fw-bold"
+            disabled={enviando}
           />
         </div>
       </form>
