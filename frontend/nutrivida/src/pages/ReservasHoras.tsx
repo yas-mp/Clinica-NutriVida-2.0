@@ -60,60 +60,81 @@ const ReservasHoras: React.FC = () => {
     }
   }, [statePreseleccion]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorReserva('');
     setMensajeConfirmacion('');
 
-    const citasExistentes: CitaMedica[] = JSON.parse(
-      localStorage.getItem('nutrivida_citas') || '[]'
-    );
+    const reprogramarCita = Boolean(statePreseleccion?.citaAReprogramar);
 
-    const horarioOcupado = citasExistentes.some(
-      (c) =>
-        c.profesional === profesional &&
-        c.fecha === fecha &&
-        c.hora === hora &&
-        c.estado !== 'Cancelada' &&
-        c.id !== statePreseleccion?.citaAReprogramar?.id
-    );
+    try{
+      const respuestaCitas = await fetch('http://localhost:8083/api/reservas');
+      if(respuestaCitas.ok){
+        const citasExistentes: CitaMedica[] = await respuestaCitas.json();
+        const horarioOcupado = citasExistentes.some(
+          (c) =>
+          c.profesional === profesional &&
+          c.fecha == fecha &&
+          c.hora == hora &&
+          c.estado !== 'Cancelada' &&
+          String(c.id) !== String(statePreseleccion?.citaAReprogramar?.id)
+        );
 
-    if (horarioOcupado) {
-      setErrorReserva(
-        `El profesional ${profesional} ya tiene una cita reservada en esa fecha y hora.`
-      );
-      return;
-    }
+        if(horarioOcupado){
+          setErrorReserva(
+            `El profesional ${profesional} ya tiene una cita reservada en esa fecha y hora.`
+          );
+          return;
+        }
+      }
 
-    const nuevaCita: CitaMedica = {
-      id: statePreseleccion?.citaAReprogramar?.id || `CITA-${Date.now()}`,
-      rutPaciente: rut.replace(/[^0-9kK]/g, '').toUpperCase(),
-      servicio,
-      profesional,
-      motivo,
-      fecha,
-      hora,
-      estado: 'Pendiente',
-      recordatorioEnviado: true,
-    };
+      const datosReserva = {
+        rutPaciente: rut.trim().toUpperCase(),
+        servicio,
+        profesional,
+        motivo,
+        fecha,
+        hora,
+        estado: 'Pendiente',
+        recordatorioEnviado: true,
+      };
+      
+      const url = reprogramarCita
+      ? `http://localhost:8083/api/reservas/${statePreseleccion!.citaAReprogramar!.id}`
+      : 'http://localhost:8083/api/reservas';
 
-    const nuevasCitas = statePreseleccion?.citaAReprogramar
-      ? citasExistentes.map((c) => (c.id === nuevaCita.id ? nuevaCita : c))
-      : [...citasExistentes, nuevaCita];
-
-    localStorage.setItem('nutrivida_citas', JSON.stringify(nuevasCitas));
-
-    setMensajeConfirmacion('¡Reserva confirmada! Redirigiendo al portal de pago...');
-    setTimeout(() => {
-      navigate('/pago', {
-        state: {
-          servicioNombre: servicio,
-          idCita: nuevaCita.id,
-          rutPaciente: nuevaCita.rutPaciente,
+      const metodo = reprogramarCita ? 'PUT' : 'POST';
+      
+      const respuesta = await fetch(url, {
+        method: metodo,
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify(datosReserva),
       });
-    }, 1200);
-  };
+
+      if(!respuesta.ok){
+        const errorTexto = await respuesta.text();
+        throw new Error(errorTexto || 'No se pudo guardar la reserva.')
+      }
+
+      const citaGuardada = await respuesta.json()
+
+      setMensajeConfirmacion('¡Reserva confirmada! Redirigiendo al portal de pago...')
+      setTimeout(() => {
+        navigate('/pago', {
+          state: {
+            servicioNombre: servicio,
+            idCita: citaGuardada.id,
+            rutPaciente: citaGuardada.rutPaciente,
+          },
+        });
+      }, 1200);
+    } catch (error: any){
+      console.error('Error en reserva: ', error);
+      setErrorReserva(error.message || 'Error de conexión con el servidor de reservas.')
+    }
+  };  
 
   const fechaMinima = new Date().toISOString().split('T')[0];
 
