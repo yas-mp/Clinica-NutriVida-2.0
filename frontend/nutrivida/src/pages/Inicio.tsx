@@ -5,14 +5,14 @@ import imagenIcono1 from "../assets/images/icono1.jpg";
 import imagenIcono2 from "../assets/images/icono2.jpg";
 import imagenIcono3 from "../assets/images/icono3.webp";
 
-function Inicio(){
-    return(
-        <main>
+function Inicio() {
+  return (
+    <main>
       <div
         id="carouselExampleFade"
         className="carousel slide carousel-fade"
         data-bs-ride="carousel"
-        data-bs-interval= "4000"
+        data-bs-interval="4000"
       >
         <div className="carousel-inner">
           <div className="carousel-item active">
@@ -35,7 +35,7 @@ function Inicio(){
                   de peso y <strong>sentirse mejor.</strong>
                 </p>
                 <Link
-                  to=""
+                  to="/reservas-horas"
                   className="btn btn-success rounded-pill px-4"
                 >
                   Reservar hora
@@ -64,7 +64,7 @@ function Inicio(){
                   de peso y <strong>sentirse mejor.</strong>
                 </p>
                 <Link
-                  to=""
+                  to="/reservas-horas"
                   className="btn btn-success rounded-pill px-4"
                 >
                   Reservar hora
@@ -97,9 +97,8 @@ function Inicio(){
 
       <div className="container my-4" style={{ maxWidth: "1300px" }}>
         <div className="row row-cols-1 row-cols-md-3 g-4">
-          
           <div className="col">
-            <div className="card carta-corta text-center">
+            <div className="card h-100 carta-corta text-center">
               <img
                 src={imagenIcono1}
                 className="card-img-top mx-auto mt-2 img-icono"
@@ -120,7 +119,7 @@ function Inicio(){
           </div>
 
           <div className="col">
-            <div className="card carta-corta text-center">
+            <div className="card h-100 carta-corta text-center">
               <img
                 src={imagenIcono3}
                 className="card-img-top mx-auto mt-2 img-icono"
@@ -142,7 +141,7 @@ function Inicio(){
           </div>
 
           <div className="col">
-            <div className="card carta-corta text-center">
+            <div className="card h-100 carta-corta text-center">
               <img
                 src={imagenIcono2}
                 className="card-img-top mx-auto mt-2 img-icono"
@@ -162,24 +161,36 @@ function Inicio(){
               ></div>
             </div>
           </div>
-
         </div>
       </div>
 
-      <div className="container my-5">
-        <h3 className="text-center mb-4">Clinica Nutricional - Ubicación</h3>
-        <div className="ratio ratio-16x9 shadow rounded overflow-hidden">
-          <iframe
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3326.4842975702304!2d-70.56321642345249!3d-33.514792000811696!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9662d1a7b50737a3%3A0xf6b03b7d1e53c8dd!2sProvidencia%205431%2C%20La%20Florida%2C%20Regi%C3%B3n%20Metropolitana!5e0!3m2!1ses!2scl!4v1788224883382!5m2!1ses!2scl"
-            style={{ border: "0" }}
-            allowFullScreen={true}
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
+      <div className="container my-5" style={{ maxWidth: "1300px" }}>
+        <h3 className="text-center fw-bold mb-4" style={{ color: "#2a492a" }}>
+          Clínica Nutricional - Ubicación
+        </h3>
+        <div className="card shadow border-0 rounded-4 overflow-hidden">
+          <div className="ratio ratio-21x9" style={{ minHeight: "350px" }}>
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3326.4842975702304!2d-70.56321642345249!3d-33.514792000811696!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9662d1a7b50737a3%3A0xf6b03b7d1e53c8dd!2sProvidencia%205431%2C%20La%20Florida%2C%20Regi%C3%B3n%20Metropolitana!5e0!3m2!1ses!2scl!4v1788224883382!5m2!1ses!2scl"
+              style={{ border: "0" }}
+              allowFullScreen={true}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Ubicación Clínica NutriVida"
+            />
+          </div>
+          <div className="card-footer bg-white py-3 px-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+            <span className="fw-semibold text-dark">
+              📍 Providencia 5431, La Florida, Región Metropolitana
+            </span>
+            <span className="text-muted small">
+              Horario de atención: Lunes a Viernes de 09:00 a 19:00 hrs
+            </span>
+          </div>
         </div>
       </div>
     </main>
   );
 }
+
 export default Inicio;
-    
