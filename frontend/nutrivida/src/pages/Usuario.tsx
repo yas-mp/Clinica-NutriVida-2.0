@@ -40,68 +40,73 @@ const Usuario: React.FC = () => {
     const rutActual = userObj.rut;
 
     const rolUpper = String(userObj.rol || '').toUpperCase();
-
     if (rolUpper.includes('NUTRI') || rolUpper === 'NUTRICIONISTA') {
       navigate('/nutricionista');
       return;
     }
 
-    const citasCargadas: CitaMedica[] = JSON.parse(
-      localStorage.getItem('nutrivida_citas') ||
-        localStorage.getItem('nutrivida_reservas') ||
-        '[]'
-    );
+    const limpiarRut = (r: string) =>
+      String(r || '')
+        .replace(/[^0-9kK]/g, '')
+        .toUpperCase();
+    const rutActualLimpio = limpiarRut(rutActual);
 
-    const citasFiltradas = citasCargadas.filter(
-      (c: any) => c.rutPaciente === rutActual || c.rut === rutActual
-    );
-    setMisCitas(citasFiltradas);
+    // 1. GET Citas desde ms-reservas (puerto 8083)
+    fetch('http://localhost:8083/api/reservas')
+      .then((res) => {
+        if (!res.ok) throw new Error('Error al cargar reservas');
+        return res.json();
+      })
+      .then((todasLasCitas) => {
+        const citasFiltradas = todasLasCitas.filter(
+          (c: any) =>
+            limpiarRut(c.rutPaciente) === rutActualLimpio ||
+            limpiarRut(c.rut) === rutActualLimpio
+        );
+        setMisCitas(citasFiltradas);
+      })
+      .catch((error) => console.error('Error en citas:', error));
 
-    const todasLasFichas: MedicionClinica[] = JSON.parse(
-      localStorage.getItem('nutrivida_fichas') || '[]'
-    );
-    const fichasPaciente = todasLasFichas.filter((f) => f.rutPaciente === rutActual);
-
-    if (fichasPaciente.length === 0) {
-      setMisMediciones([
-        {
-          id: 'MED-1',
-          rutPaciente: rutActual,
-          fecha: '2026-10-05',
-          pesoKg: 74.5,
-          tallaCm: 170,
-          cinturaCm: 84,
-          imc: 25.8,
-          nutricionista: 'Carolina Fuentes M.',
-          planAlimenticio:
-            'Desayuno: Avena con chía y fruta. Almuerzo: 150g proteína magra + quínoa + ensalada verde. Cena: Tortilla de verduras. Agua: 2L diarios.',
-          observaciones: 'Control en 15 días.',
-        },
-      ]);
-    } else {
-      setMisMediciones(fichasPaciente);
-    }
+    // 2. GET Fichas Médicas desde ms-fichas (puerto 8084)
+    fetch('http://localhost:8084/api/fichas')
+      .then((res) => {
+        if (!res.ok) throw new Error('Error al cargar fichas');
+        return res.json();
+      })
+      .then((todasLasFichas) => {
+        const fichasPaciente = todasLasFichas.filter(
+          (f: any) => limpiarRut(f.rutPaciente) === rutActualLimpio
+        );
+        setMisMediciones(fichasPaciente);
+      })
+      .catch((error) => console.error('Error en fichas:', error));
   }, [navigate]);
 
-  const handleCancelarCita = (idCita: string) => {
-    const claveStorage = localStorage.getItem('nutrivida_citas')
-      ? 'nutrivida_citas'
-      : 'nutrivida_reservas';
+  // 3. PUT para cancelar cita en ms-reservas (puerto 8083)
+  const handleCancelarCita = async (idCita: string) => {
+    if (!window.confirm('¿Seguro que deseas cancelar esta cita?')) return;
 
-    const todasLasCitas: any[] = JSON.parse(
-      localStorage.getItem(claveStorage) || '[]'
-    );
+    try {
+      const respuesta = await fetch(
+        `http://localhost:8083/api/reservas/${idCita}/estado?estado=Cancelada`,
+        {
+          method: 'PUT',
+        }
+      );
 
-    const actualizadas = todasLasCitas.map((c) =>
-      c.id === idCita ? { ...c, estado: 'Cancelada' } : c
-    );
+      if (!respuesta.ok) {
+        throw new Error('No se pudo cancelar la cita en el servidor');
+      }
 
-    localStorage.setItem(claveStorage, JSON.stringify(actualizadas));
-    localStorage.setItem('nutrivida_reservas', JSON.stringify(actualizadas));
-
-    // Actualizar pantalla en tiempo real
-    if (paciente) {
-      setMisCitas(actualizadas.filter((c) => c.rutPaciente === paciente.rut || c.rut === paciente.rut));
+      setMisCitas((prevCitas) =>
+        prevCitas.map((c) =>
+          String(c.id) === String(idCita) ? { ...c, estado: 'Cancelada' } : c
+        )
+      );
+      alert('Cita cancelada correctamente');
+    } catch (error) {
+      console.error(error);
+      alert('Error al cancelar la cita');
     }
   };
 
