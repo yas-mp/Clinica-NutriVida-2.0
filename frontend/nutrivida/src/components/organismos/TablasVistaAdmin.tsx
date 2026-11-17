@@ -15,6 +15,13 @@ export const TablaUsuariosAdmin: React.FC<TablaUsuariosProps> = ({
   onEliminarUsuario,
   onModificarUsuario,
 }) => {
+  const normalizarRol = (rol?: string): string => {
+    const r = String(rol || "").toUpperCase();
+    if (r.includes("ADMIN")) return "ADMIN";
+    if (r.includes("NUTRI")) return "NUTRICIONISTA";
+    return "PACIENTE";
+  };
+
   return (
     <div className="table-responsive">
       <table className="table table-hover align-middle">
@@ -39,10 +46,10 @@ export const TablaUsuariosAdmin: React.FC<TablaUsuariosProps> = ({
             listaUsuarios.map((user, i) => {
               const nombreCompleto =
                 `${user.nombre || user.nombres || ""} ${user.apellidos || ""}`.trim();
-              const rolActual = user.rol || "Cliente";
+              const rolSeleccionado = normalizarRol(user.rol);
 
               return (
-                <tr key={i}>
+                <tr key={user.id ?? user.rut ?? i}>
                   <td>
                     <strong>{user.rut || user.run || "N/A"}</strong>
                   </td>
@@ -54,24 +61,24 @@ export const TablaUsuariosAdmin: React.FC<TablaUsuariosProps> = ({
                   <td>
                     <select
                       className="form-select form-select-sm border-success fw-bold"
-                      value={rolActual === "Paciente" ? "Cliente" : rolActual}
+                      value={rolSeleccionado}
                       onChange={(e) => onCambiarRol(i, e.target.value)}
                     >
-                      <option value="Cliente">Paciente</option>
-                      <option value="Nutricionista">Nutricionista</option>
-                      <option value="Administrador">Administrador</option>
+                      <option value="PACIENTE">Paciente</option>
+                      <option value="NUTRICIONISTA">Nutricionista</option>
+                      <option value="ADMIN">Administrador</option>
                     </select>
                   </td>
                   <td>
-                   <Boton
-                    label="Eliminar"
-                    className="btn btn-danger btn-sm me-1"
-                    onClick={() => onEliminarUsuario(i)}
+                    <Boton
+                      label="Eliminar"
+                      className="btn btn-danger btn-sm me-1"
+                      onClick={() => onEliminarUsuario(i)}
                     />
                     <Boton
-                    label="Modificar"
-                    className="btn btn-warning btn-sm"
-                    onClick={() => onModificarUsuario(i)}
+                      label="Modificar"
+                      className="btn btn-warning btn-sm"
+                      onClick={() => onModificarUsuario(i)}
                     />
                   </td>
                 </tr>
@@ -114,30 +121,40 @@ export const TablaReservasAdmin: React.FC<TablaReservasProps> = ({
               </td>
             </tr>
           ) : (
-            listaReservas.map((reserva, i) => (
-              <tr key={i}>
-                <td>
-                  <strong>
-                    {reserva.rut || reserva.run || reserva.rutPaciente || "N/A"}
-                  </strong>
-                </td>
-                <td>{reserva.servicio}</td>
-                <td>{reserva.fecha}</td>
-                <td>{reserva.hora} hrs</td>
-                <td>
-                  <span className="badge bg-success">
-                    {reserva.estado || "Confirmada"}
-                  </span>
-                </td>
-                <td>
-                  <Boton
-                    label="Cancelar"
-                    className="btn btn-danger btn-sm me-1"
-                    onClick={() => onCancelarReserva(i)}
-                  />
-                </td>
-              </tr>
-            ))
+            listaReservas.map((reserva, i) => {
+              const estado = reserva.estado || "Pendiente";
+              const badgeClase =
+                estado === "Confirmada"
+                  ? "bg-success"
+                  : estado === "Cancelada"
+                  ? "bg-danger"
+                  : "bg-warning text-dark";
+
+              return (
+                <tr key={reserva.id ?? i}>
+                  <td>
+                    <strong>
+                      {reserva.rut || reserva.run || reserva.rutPaciente || "N/A"}
+                    </strong>
+                  </td>
+                  <td>{reserva.servicio}</td>
+                  <td>{reserva.fecha}</td>
+                  <td>{reserva.hora} hrs</td>
+                  <td>
+                    <span className={`badge ${badgeClase}`}>{estado}</span>
+                  </td>
+                  <td>
+                    {estado !== "Cancelada" && (
+                      <Boton
+                        label="Cancelar"
+                        className="btn btn-danger btn-sm me-1"
+                        onClick={() => onCancelarReserva(i)}
+                      />
+                    )}
+                  </td>
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>
@@ -189,16 +206,16 @@ export const TablaServiciosAdmin: React.FC<TablaServiciosProps> = ({
                 <td>{servi.profesional}</td>
                 <td>${servi.precio}</td>
                 <td>
-                <Boton
-                label="Eliminar"
-                className="btn btn-danger btn-sm me-1"
-                onClick={() => onEliminarServicio(servi.id)}
-                />
-                <Boton
-                label="Modificar"
-                className="btn btn-warning btn-sm"
-                onClick={() => onModificarServicio(servi.id)}
-                />
+                  <Boton
+                    label="Eliminar"
+                    className="btn btn-danger btn-sm me-1"
+                    onClick={() => onEliminarServicio(servi.id)}
+                  />
+                  <Boton
+                    label="Modificar"
+                    className="btn btn-warning btn-sm"
+                    onClick={() => onModificarServicio(servi.id)}
+                  />
                 </td>
               </tr>
             ))

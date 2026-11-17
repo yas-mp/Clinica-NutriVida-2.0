@@ -68,6 +68,30 @@ export const Admin: React.FC = () => {
   const [errorFormulario, setErrorFormulario] = useState<string | null>(null);
   const [guardando, setGuardando] = useState<boolean>(false);
 
+  // 1. Cargar Usuarios desde ms-usuarios (puerto 8081)
+  const cargarUsuarios = useCallback(async () => {
+    try {
+      const resp = await fetch("http://localhost:8081/api/usuarios");
+      if (!resp.ok) throw new Error("Error al cargar usuarios");
+      const data = await resp.json();
+      setListaUsuarios(data);
+    } catch (error) {
+      console.error("Error cargando usuarios:", error);
+    }
+  }, []);
+
+  // 2. Cargar Reservas desde ms-reservas (puerto 8083)
+  const cargarReservas = useCallback(async () => {
+    try {
+      const resp = await fetch("http://localhost:8083/api/reservas");
+      if (!resp.ok) throw new Error("Error al cargar reservas");
+      const data = await resp.json();
+      setListaReservas(data);
+    } catch (error) {
+      console.error("Error cargando reservas:", error);
+    }
+  }, []);
+
   const cargarServicios = useCallback(async () => {
     setCargandoServicios(true);
     setErrorServicios(null);
@@ -120,49 +144,65 @@ export const Admin: React.FC = () => {
       return;
     }
 
-    const usuarios = JSON.parse(
-      localStorage.getItem("nutrivida_usuarios") ||
-        localStorage.getItem("usuarios") ||
-        "[]",
-    );
-
-    const reservas = JSON.parse(
-      localStorage.getItem("nutrivida_citas") ||
-        localStorage.getItem("nutrivida_reservas") ||
-        localStorage.getItem("reservas") ||
-        "[]",
-    );
-
-    setListaUsuarios(usuarios);
-    setListaReservas(reservas);
-
+    void cargarUsuarios();
+    void cargarReservas();
     void cargarServicios();
     void cargarTiposServicio();
-  }, [navigate, cargarServicios, cargarTiposServicio]);
+  }, [navigate, cargarUsuarios, cargarReservas, cargarServicios, cargarTiposServicio]);
 
-  const cancelarReserva = (index: number) => {
-    if (confirm("¿Estás seguro de cancelar esta reserva?")) {
-      const nuevaLista = [...listaReservas];
-      nuevaLista.splice(index, 1);
-      setListaReservas(nuevaLista);
+  // 3. Cancelar Reserva en ms-reservas (puerto 8083)
+  const cancelarReserva = async (index: number) => {
+    const reserva = listaReservas[index];
+    if (!reserva) return;
 
-      localStorage.setItem("nutrivida_citas", JSON.stringify(nuevaLista));
-      localStorage.setItem("nutrivida_reservas", JSON.stringify(nuevaLista));
+    if (!confirm("¿Estás seguro de cancelar esta reserva?")) return;
+
+    try {
+      const resp = await fetch(
+        `http://localhost:8083/api/reservas/${reserva.id}/estado?estado=Cancelada`,
+        {
+          method: "PUT",
+        },
+      );
+
+      if (!resp.ok) {
+        throw new Error("No se pudo cancelar la reserva en el servidor.");
+      }
+
+      await cargarReservas();
+      alert("Reserva cancelada correctamente.");
+    } catch (error) {
+      console.error("Error al cancelar reserva:", error);
+      alert("Error al cancelar la reserva en el servidor.");
     }
   };
 
-  const cambiarRolUsuario = (pos: number, nRol: string) => {
-    const nuevaLista = [...listaUsuarios];
-    if (nuevaLista[pos]) {
-      nuevaLista[pos].rol = nRol;
-      setListaUsuarios(nuevaLista);
-      localStorage.setItem("nutrivida_usuarios", JSON.stringify(nuevaLista));
+  // 4. Cambiar Rol de Usuario en ms-usuarios (puerto 8081)
+  const cambiarRolUsuario = async (pos: number, nRol: string) => {
+    const usuario = listaUsuarios[pos];
+    if (!usuario) return;
+
+    const identificador = usuario.id ?? usuario.rut;
+    const usuarioActualizado = { ...usuario, rol: nRol };
+
+    try {
+      const resp = await fetch(`http://localhost:8081/api/usuarios/${identificador}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(usuarioActualizado),
+      });
+
+      if (!resp.ok) {
+        throw new Error("No se pudo actualizar el rol.");
+      }
 
       const usuarioSesion = JSON.parse(
         localStorage.getItem("nutrivida_usuario_activo") || "null",
       );
 
-      if (usuarioSesion && usuarioSesion.correo === nuevaLista[pos].correo) {
+      if (usuarioSesion && usuarioSesion.correo === usuario.correo) {
         usuarioSesion.rol = nRol;
         localStorage.setItem(
           "nutrivida_usuario_activo",
@@ -170,30 +210,73 @@ export const Admin: React.FC = () => {
         );
       }
 
+      await cargarUsuarios();
       alert("Rol cambiado a " + nRol + " exitosamente.");
+    } catch (error) {
+      console.error("Error al cambiar rol:", error);
+      alert("Error al cambiar el rol en el servidor.");
     }
   };
 
-  const eliminarUsuario = (index: number) => {
-    if (confirm("¿Estás seguro de que deseas eliminar a este usuario?")) {
-      const nuevaLista = [...listaUsuarios];
-      nuevaLista.splice(index, 1);
-      setListaUsuarios(nuevaLista);
-      localStorage.setItem("nutrivida_usuarios", JSON.stringify(nuevaLista));
+  // 5. Eliminar Usuario en ms-usuarios (puerto 8081)
+  const eliminarUsuario = async (index: number) => {
+    const usuario = listaUsuarios[index];
+    if (!usuario) return;
+
+    if (!confirm("¿Estás seguro de que deseas eliminar a este usuario?")) return;
+
+    const identificador = usuario.id ?? usuario.rut;
+
+    try {
+      const resp = await fetch(`http://localhost:8081/api/usuarios/${identificador}`, {
+        method: "DELETE",
+      });
+
+      if (!resp.ok) {
+        throw new Error("No se pudo eliminar el usuario.");
+      }
+
+      await cargarUsuarios();
+      alert("Usuario eliminado correctamente.");
+    } catch (error) {
+      console.error("Error al eliminar usuario:", error);
+      alert("Error al eliminar el usuario en el servidor.");
     }
   };
 
-  const modificarUsuario = (index: number) => {
+  // 6. Modificar Correo de Usuario en ms-usuarios (puerto 8081)
+  const modificarUsuario = async (index: number) => {
     const user = listaUsuarios[index];
+    if (!user) return;
+
     const nuevoCorreo = prompt(
       "Ingrese el nuevo correo electrónico:",
       user.correo || "",
     );
-    if (nuevoCorreo !== null && nuevoCorreo.trim() !== "") {
-      const nuevaLista = [...listaUsuarios];
-      nuevaLista[index].correo = nuevoCorreo.trim();
-      setListaUsuarios(nuevaLista);
-      localStorage.setItem("nutrivida_usuarios", JSON.stringify(nuevaLista));
+
+    if (nuevoCorreo === null || nuevoCorreo.trim() === "") return;
+
+    const identificador = user.id ?? user.rut;
+    const usuarioActualizado = { ...user, correo: nuevoCorreo.trim() };
+
+    try {
+      const resp = await fetch(`http://localhost:8081/api/usuarios/${identificador}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(usuarioActualizado),
+      });
+
+      if (!resp.ok) {
+        throw new Error("No se pudo modificar el correo.");
+      }
+
+      await cargarUsuarios();
+      alert("Correo actualizado correctamente.");
+    } catch (error) {
+      console.error("Error al modificar usuario:", error);
+      alert("Error al modificar el usuario en el servidor.");
     }
   };
 
