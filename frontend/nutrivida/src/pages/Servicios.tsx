@@ -10,11 +10,6 @@ import {
 import type { TipoServicio } from '../services/servicioService';
 import { resolverImagenServicio } from '../services/servicioImagenes';
 
-/**
- * Catálogo heredado en localStorage para vistas que todavía no consumen la API
- * (por ejemplo ReservasHoras). El catálogo visible de esta página se obtiene
- * siempre desde el microservicio de Servicios.
- */
 export const CATALOGO_SERVICIOS: ServicioNutricional[] = LISTADO_SERVICIOS;
 export type { ServicioNutricional };
 
@@ -48,7 +43,6 @@ const Servicios: React.FC = () => {
 
   useEffect(() => {
     // Carga inicial del catálogo desde la API: el estado se actualiza después del fetch.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void cargarCatalogo();
   }, [cargarCatalogo]);
 

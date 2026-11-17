@@ -13,19 +13,6 @@ import org.springframework.web.client.RestClientResponseException;
 
 import com.clinica.pago.client.dto.UsuarioRemotoDTO;
 
-/**
- * Cliente HTTP que valida contra el microservicio de usuarios que el usuarioId
- * asociado a un pago exista realmente.
- *
- * <p>Comportamiento ante fallos:
- * <ul>
- *   <li>Si el usuario no existe (HTTP 404) se rechaza el registro del pago.</li>
- *   <li>Si el servicio de usuarios no responde, el comportamiento depende de la
- *       propiedad {@code pago.usuarios.fallar-si-no-responde}. Por defecto es
- *       tolerante (false): se registra una advertencia y el pago se guarda para
- *       no perder el historial cuando el servicio está caído.</li>
- * </ul>
- */
 @Component
 public class UsuarioClient {
 

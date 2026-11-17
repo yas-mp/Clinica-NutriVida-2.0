@@ -6,10 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Representación mínima del usuario devuelto por el microservicio de usuarios.
- * Solo se utilizan los campos necesarios para validar su existencia.
- */
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
