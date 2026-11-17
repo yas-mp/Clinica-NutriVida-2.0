@@ -2,6 +2,39 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import type { CitaMedica } from './ReservasHoras';
 import type { UsuarioRegistrado } from './RegistroUsuario';
+import {
+  listarPagosPorRut,
+  listarPagosPorUsuario,
+  obtenerMensajeError as obtenerMensajeErrorPago,
+  obtenerUsuarioIdSesion,
+} from '../services/pagoService';
+import type { Pago } from '../services/pagoService';
+
+function formatearFechaPago(fecha: string | null): string {
+  if (!fecha) {
+    return '—';
+  }
+
+  const [anio, mes, dia] = fecha.split('T')[0].split('-');
+  if (anio && mes && dia) {
+    return `${dia}-${mes}-${anio}`;
+  }
+
+  return fecha;
+}
+
+function claseEstadoPago(estado: string): string {
+  switch (estado) {
+    case 'Aprobado':
+      return 'badge bg-success';
+    case 'Pendiente':
+      return 'badge bg-warning text-dark';
+    case 'Rechazado':
+      return 'badge bg-danger';
+    default:
+      return 'badge bg-secondary';
+  }
+}
 
 export interface MedicionClinica {
   id: string;
@@ -26,6 +59,9 @@ const Usuario: React.FC = () => {
 
   const [misCitas, setMisCitas] = useState<CitaMedica[]>([]);
   const [misMediciones, setMisMediciones] = useState<MedicionClinica[]>([]);
+  const [misPagos, setMisPagos] = useState<Pago[]>([]);
+  const [cargandoPagos, setCargandoPagos] = useState<boolean>(false);
+  const [errorPagos, setErrorPagos] = useState<string | null>(null);
 
   useEffect(() => {
     const sesionStr = localStorage.getItem('nutrivida_usuario_activo');
@@ -82,6 +118,45 @@ const Usuario: React.FC = () => {
       setMisMediciones(fichasPaciente);
     }
   }, [navigate]);
+
+  useEffect(() => {
+    if (!paciente) {
+      return;
+    }
+
+    let activo = true;
+
+    const cargarPagos = async () => {
+      setCargandoPagos(true);
+      setErrorPagos(null);
+
+      try {
+        const usuarioId = obtenerUsuarioIdSesion();
+        const pagos = usuarioId
+          ? await listarPagosPorUsuario(usuarioId)
+          : await listarPagosPorRut(paciente.rut);
+
+        if (activo) {
+          setMisPagos(pagos);
+        }
+      } catch (err) {
+        if (activo) {
+          setMisPagos([]);
+          setErrorPagos(obtenerMensajeErrorPago(err));
+        }
+      } finally {
+        if (activo) {
+          setCargandoPagos(false);
+        }
+      }
+    };
+
+    void cargarPagos();
+
+    return () => {
+      activo = false;
+    };
+  }, [paciente]);
 
   const handleCancelarCita = (idCita: string) => {
     const claveStorage = localStorage.getItem('nutrivida_citas')
@@ -277,6 +352,75 @@ const Usuario: React.FC = () => {
               </tbody>
             </table>
           </div>
+
+          <div className="d-flex justify-content-between align-items-center mb-3 mt-5">
+            <h4 className="m-0 fw-bold" style={{ color: '#2a492a' }}>
+              Mis Pagos
+            </h4>
+            <span className="text-muted small">
+              Historial registrado en el servicio de pagos
+            </span>
+          </div>
+
+          {errorPagos && (
+            <div className="alert alert-danger" role="alert">
+              {errorPagos}
+            </div>
+          )}
+
+          {cargandoPagos ? (
+            <div className="text-center py-4" role="status" aria-live="polite">
+              <div className="spinner-border text-success" aria-hidden="true"></div>
+              <p className="text-muted mt-3 mb-0">Cargando tus pagos...</p>
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-hover align-middle" id="tabla-pagos">
+                <thead className="nv-table-head">
+                  <tr>
+                    <th>Comprobante</th>
+                    <th>Fecha</th>
+                    <th>Servicio</th>
+                    <th>Monto</th>
+                    <th>Medio de Pago</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {misPagos.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center text-muted py-3">
+                        No tienes pagos registrados.
+                      </td>
+                    </tr>
+                  ) : (
+                    misPagos.map((pago) => (
+                      <tr key={pago.id}>
+                        <td>
+                          <strong>{pago.numeroComprobante}</strong>
+                        </td>
+                        <td className="text-nowrap">
+                          {formatearFechaPago(pago.fechaPago)}
+                        </td>
+                        <td>
+                          {pago.servicioNombre}
+                          <div className="small text-muted">{pago.codigoServicio}</div>
+                        </td>
+                        <td>${pago.monto.toLocaleString('es-CL')}</td>
+                        <td>
+                          {pago.metodoPago}
+                          <div className="small text-muted">**** {pago.ultimos4Digitos}</div>
+                        </td>
+                        <td>
+                          <span className={claseEstadoPago(pago.estado)}>{pago.estado}</span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </section>
     </main>

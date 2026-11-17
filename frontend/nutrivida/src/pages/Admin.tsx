@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  TablaPagosAdmin,
   TablaReservasAdmin,
   TablaServiciosAdmin,
   TablaUsuariosAdmin,
@@ -28,6 +29,12 @@ import {
   responderMensajeContacto,
 } from "../services/contactoService";
 import type { ContactoMensaje } from "../services/contactoService";
+import {
+  anularPago,
+  listarPagos,
+  obtenerMensajeError as obtenerMensajeErrorPago,
+} from "../services/pagoService";
+import type { Pago } from "../services/pagoService";
 
 interface FormularioServicio {
   codigo: string;
@@ -71,6 +78,11 @@ export const Admin: React.FC = () => {
   const [cargandoContactos, setCargandoContactos] = useState<boolean>(false);
   const [errorContactos, setErrorContactos] = useState<string | null>(null);
   const [mensajeContactos, setMensajeContactos] = useState<string | null>(null);
+
+  const [listaPagos, setListaPagos] = useState<Pago[]>([]);
+  const [cargandoPagos, setCargandoPagos] = useState<boolean>(false);
+  const [errorPagos, setErrorPagos] = useState<string | null>(null);
+  const [mensajePagos, setMensajePagos] = useState<string | null>(null);
 
   const [mostrarModal, setMostrarModal] = useState<boolean>(false);
   const [servicioEnEdicion, setServicioEnEdicion] = useState<ServicioNutricional | null>(
@@ -123,6 +135,20 @@ export const Admin: React.FC = () => {
     }
   }, []);
 
+  const cargarPagos = useCallback(async () => {
+    setCargandoPagos(true);
+    setErrorPagos(null);
+
+    try {
+      setListaPagos(await listarPagos());
+    } catch (err) {
+      setListaPagos([]);
+      setErrorPagos(obtenerMensajeErrorPago(err));
+    } finally {
+      setCargandoPagos(false);
+    }
+  }, []);
+
   useEffect(() => {
     const usuarioActivo = JSON.parse(
       localStorage.getItem("nutrivida_usuario_activo") ||
@@ -167,7 +193,8 @@ export const Admin: React.FC = () => {
     void cargarServicios();
     void cargarTiposServicio();
     void cargarContactos();
-  }, [navigate, cargarServicios, cargarTiposServicio, cargarContactos]);
+    void cargarPagos();
+  }, [navigate, cargarServicios, cargarTiposServicio, cargarContactos, cargarPagos]);
 
   const cancelarReserva = (index: number) => {
     if (confirm("¿Estás seguro de cancelar esta reserva?")) {
@@ -393,6 +420,23 @@ export const Admin: React.FC = () => {
     }
   };
 
+  const anularPagoAdmin = async (id: number) => {
+    if (!confirm("¿Estás seguro de anular este pago?")) {
+      return;
+    }
+
+    setErrorPagos(null);
+    setMensajePagos(null);
+
+    try {
+      await anularPago(id);
+      setMensajePagos("Pago anulado correctamente.");
+      await cargarPagos();
+    } catch (err) {
+      setErrorPagos(obtenerMensajeErrorPago(err));
+    }
+  };
+
   const cerrarSesion = () => {
     localStorage.removeItem("nutrivida_usuario_activo");
     localStorage.removeItem("usuario_sesion");
@@ -462,6 +506,18 @@ export const Admin: React.FC = () => {
             <button
               className="nav-link fw-bold text-success"
               data-bs-toggle="tab"
+              data-bs-target="#sec-pagos"
+            >
+              Pagos Registrados
+              {listaPagos.length > 0 && (
+                <span className="badge bg-success ms-2">{listaPagos.length}</span>
+              )}
+            </button>
+          </li>
+          <li className="nav-item">
+            <button
+              className="nav-link fw-bold text-success"
+              data-bs-toggle="tab"
               data-bs-target="#sec-contactos"
             >
               Mensajes de Contacto
@@ -494,6 +550,55 @@ export const Admin: React.FC = () => {
                 listaReservas={listaReservas}
                 onCancelarReserva={cancelarReserva}
               />
+            </div>
+          </div>
+
+          <div className="tab-pane fade" id="sec-pagos">
+            <div className="card p-3 shadow-sm">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h4 className="m-0">Historial de Pagos</h4>
+                <button
+                  type="button"
+                  className="btn btn-outline-success btn-sm"
+                  onClick={() => void cargarPagos()}
+                  disabled={cargandoPagos}
+                >
+                  {cargandoPagos ? "Actualizando..." : "Actualizar"}
+                </button>
+              </div>
+
+              {errorPagos && (
+                <div className="alert alert-danger" role="alert">
+                  {errorPagos}
+                </div>
+              )}
+
+              {mensajePagos && (
+                <div
+                  className="alert alert-success d-flex justify-content-between align-items-center"
+                  role="status"
+                >
+                  <span>{mensajePagos}</span>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    aria-label="Cerrar mensaje"
+                    onClick={() => setMensajePagos(null)}
+                  ></button>
+                </div>
+              )}
+
+              {cargandoPagos ? (
+                <div className="text-center py-4" role="status" aria-live="polite">
+                  <div className="spinner-border text-success" aria-hidden="true"></div>
+                  <p className="text-muted mt-3 mb-0">Cargando pagos registrados...</p>
+                </div>
+              ) : (
+                <TablaPagosAdmin
+                  listaPagos={listaPagos}
+                  onAnularPago={(id) => void anularPagoAdmin(id)}
+                />
+              )}
             </div>
           </div>
 

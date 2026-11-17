@@ -1,6 +1,7 @@
 import React from "react";
 import Boton from "../atomos/Boton";
 import type { ServicioNutricional } from "../../services/servicioService";
+import type { Pago } from "../../services/pagoService";
 
 interface TablaUsuariosProps {
   listaUsuarios: any[];
@@ -135,6 +136,106 @@ export const TablaReservasAdmin: React.FC<TablaReservasProps> = ({
                     className="btn btn-danger btn-sm me-1"
                     onClick={() => onCancelarReserva(i)}
                   />
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+function formatearFechaPago(fecha: string | null): string {
+  if (!fecha) {
+    return "—";
+  }
+
+  const [anio, mes, dia] = fecha.split("T")[0].split("-");
+  if (anio && mes && dia) {
+    return `${dia}-${mes}-${anio}`;
+  }
+
+  return fecha;
+}
+
+function claseEstadoPago(estado: string): string {
+  switch (estado) {
+    case "Aprobado":
+      return "badge bg-success";
+    case "Pendiente":
+      return "badge bg-warning text-dark";
+    case "Rechazado":
+      return "badge bg-danger";
+    default:
+      return "badge bg-secondary";
+  }
+}
+
+interface TablaPagosProps {
+  listaPagos: Pago[];
+  onAnularPago?: (id: number) => void;
+}
+
+export const TablaPagosAdmin: React.FC<TablaPagosProps> = ({
+  listaPagos,
+  onAnularPago,
+}) => {
+  return (
+    <div className="table-responsive">
+      <table className="table table-hover align-middle">
+        <thead className="table-dark">
+          <tr>
+            <th>Comprobante</th>
+            <th>Fecha</th>
+            <th>Paciente</th>
+            <th>Servicio</th>
+            <th>Medio de Pago</th>
+            <th>Monto</th>
+            <th>Estado</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          {listaPagos.length === 0 ? (
+            <tr>
+              <td colSpan={8} className="text-center py-3">
+                No hay pagos registrados.
+              </td>
+            </tr>
+          ) : (
+            listaPagos.map((pago) => (
+              <tr key={pago.id}>
+                <td>
+                  <strong>{pago.numeroComprobante}</strong>
+                </td>
+                <td className="text-nowrap">{formatearFechaPago(pago.fechaPago)}</td>
+                <td>
+                  <strong>{pago.titular}</strong>
+                  <div className="small text-muted">{pago.rutPaciente}</div>
+                </td>
+                <td>
+                  {pago.servicioNombre}
+                  <div className="small text-muted">{pago.codigoServicio}</div>
+                </td>
+                <td>
+                  {pago.metodoPago}
+                  <div className="small text-muted">**** {pago.ultimos4Digitos}</div>
+                </td>
+                <td>${pago.monto.toLocaleString("es-CL")}</td>
+                <td>
+                  <span className={claseEstadoPago(pago.estado)}>{pago.estado}</span>
+                </td>
+                <td>
+                  {onAnularPago && pago.estado !== "Anulado" ? (
+                    <Boton
+                      label="Anular"
+                      className="btn btn-outline-danger btn-sm"
+                      onClick={() => onAnularPago(pago.id)}
+                    />
+                  ) : (
+                    <span className="text-muted small">—</span>
+                  )}
                 </td>
               </tr>
             ))
