@@ -4,6 +4,7 @@ import {
   TablaServiciosAdmin,
   TablaUsuariosAdmin,
 } from "../components/organismos/TablasVistaAdmin";
+import { TablaContactosAdmin } from "../components/organismos/TablaContactosAdmin";
 import { useNavigate } from "react-router-dom";
 import {
   actualizarServicio,
@@ -19,6 +20,14 @@ import type {
   TipoServicio,
 } from "../services/servicioService";
 import { resolverImagenServicio } from "../services/servicioImagenes";
+import {
+  eliminarMensajeContacto,
+  listarMensajesContacto,
+  marcarMensajeLeido,
+  obtenerMensajeError as obtenerMensajeErrorContacto,
+  responderMensajeContacto,
+} from "../services/contactoService";
+import type { ContactoMensaje } from "../services/contactoService";
 
 interface FormularioServicio {
   codigo: string;
@@ -58,6 +67,11 @@ export const Admin: React.FC = () => {
   const [errorServicios, setErrorServicios] = useState<string | null>(null);
   const [mensajeServicios, setMensajeServicios] = useState<string | null>(null);
 
+  const [listaContactos, setListaContactos] = useState<ContactoMensaje[]>([]);
+  const [cargandoContactos, setCargandoContactos] = useState<boolean>(false);
+  const [errorContactos, setErrorContactos] = useState<string | null>(null);
+  const [mensajeContactos, setMensajeContactos] = useState<string | null>(null);
+
   const [mostrarModal, setMostrarModal] = useState<boolean>(false);
   const [servicioEnEdicion, setServicioEnEdicion] = useState<ServicioNutricional | null>(
     null,
@@ -92,6 +106,20 @@ export const Admin: React.FC = () => {
       setErrorServicios((previo) => previo ?? obtenerMensajeError(err));
     } finally {
       setCargandoTipos(false);
+    }
+  }, []);
+
+  const cargarContactos = useCallback(async () => {
+    setCargandoContactos(true);
+    setErrorContactos(null);
+
+    try {
+      setListaContactos(await listarMensajesContacto());
+    } catch (err) {
+      setListaContactos([]);
+      setErrorContactos(obtenerMensajeErrorContacto(err));
+    } finally {
+      setCargandoContactos(false);
     }
   }, []);
 
@@ -138,7 +166,8 @@ export const Admin: React.FC = () => {
 
     void cargarServicios();
     void cargarTiposServicio();
-  }, [navigate, cargarServicios, cargarTiposServicio]);
+    void cargarContactos();
+  }, [navigate, cargarServicios, cargarTiposServicio, cargarContactos]);
 
   const cancelarReserva = (index: number) => {
     if (confirm("¿Estás seguro de cancelar esta reserva?")) {
@@ -305,6 +334,65 @@ export const Admin: React.FC = () => {
     }
   };
 
+  const marcarLeidoContacto = async (id: number, leido: boolean) => {
+    setErrorContactos(null);
+    setMensajeContactos(null);
+
+    try {
+      await marcarMensajeLeido(id, leido);
+      setMensajeContactos(
+        leido ? "Mensaje marcado como leído." : "Mensaje marcado como no leído.",
+      );
+      await cargarContactos();
+    } catch (err) {
+      setErrorContactos(obtenerMensajeErrorContacto(err));
+    }
+  };
+
+  const responderContacto = async (contacto: ContactoMensaje) => {
+    const respuesta = prompt(
+      `Respuesta para ${contacto.nombre} (${contacto.correo}):`,
+      contacto.respuesta ?? "",
+    );
+
+    if (respuesta === null) {
+      return;
+    }
+
+    if (!respuesta.trim()) {
+      alert("La respuesta no puede estar vacía.");
+      return;
+    }
+
+    setErrorContactos(null);
+    setMensajeContactos(null);
+
+    try {
+      await responderMensajeContacto(contacto.id, respuesta.trim());
+      setMensajeContactos(`Respuesta registrada para ${contacto.nombre}.`);
+      await cargarContactos();
+    } catch (err) {
+      setErrorContactos(obtenerMensajeErrorContacto(err));
+    }
+  };
+
+  const eliminarContacto = async (id: number) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar este mensaje de contacto?")) {
+      return;
+    }
+
+    setErrorContactos(null);
+    setMensajeContactos(null);
+
+    try {
+      await eliminarMensajeContacto(id);
+      setMensajeContactos("Mensaje de contacto eliminado correctamente.");
+      await cargarContactos();
+    } catch (err) {
+      setErrorContactos(obtenerMensajeErrorContacto(err));
+    }
+  };
+
   const cerrarSesion = () => {
     localStorage.removeItem("nutrivida_usuario_activo");
     localStorage.removeItem("usuario_sesion");
@@ -368,6 +456,20 @@ export const Admin: React.FC = () => {
               data-bs-target="#sec-reservas"
             >
               Reservas
+            </button>
+          </li>
+          <li className="nav-item">
+            <button
+              className="nav-link fw-bold text-success"
+              data-bs-toggle="tab"
+              data-bs-target="#sec-contactos"
+            >
+              Mensajes de Contacto
+              {listaContactos.filter((contacto) => !contacto.leido).length > 0 && (
+                <span className="badge bg-danger ms-2">
+                  {listaContactos.filter((contacto) => !contacto.leido).length}
+                </span>
+              )}
             </button>
           </li>
         </ul>
@@ -450,6 +552,57 @@ export const Admin: React.FC = () => {
                   servicios={servicios}
                   onEliminarServicio={eliminarServicioAdmin}
                   onModificarServicio={abrirModalEditar}
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="tab-pane fade" id="sec-contactos">
+            <div className="card p-3 shadow-sm">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h4 className="m-0">Mensajes de Contacto</h4>
+                <button
+                  type="button"
+                  className="btn btn-outline-success btn-sm"
+                  onClick={() => void cargarContactos()}
+                  disabled={cargandoContactos}
+                >
+                  {cargandoContactos ? "Actualizando..." : "Actualizar"}
+                </button>
+              </div>
+
+              {errorContactos && (
+                <div className="alert alert-danger" role="alert">
+                  {errorContactos}
+                </div>
+              )}
+
+              {mensajeContactos && (
+                <div
+                  className="alert alert-success d-flex justify-content-between align-items-center"
+                  role="status"
+                >
+                  <span>{mensajeContactos}</span>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    aria-label="Cerrar mensaje"
+                    onClick={() => setMensajeContactos(null)}
+                  ></button>
+                </div>
+              )}
+
+              {cargandoContactos ? (
+                <div className="text-center py-4" role="status" aria-live="polite">
+                  <div className="spinner-border text-success" aria-hidden="true"></div>
+                  <p className="text-muted mt-3 mb-0">Cargando mensajes de contacto...</p>
+                </div>
+              ) : (
+                <TablaContactosAdmin
+                  listaContactos={listaContactos}
+                  onMarcarLeido={(id, leido) => void marcarLeidoContacto(id, leido)}
+                  onResponder={(contacto) => void responderContacto(contacto)}
+                  onEliminar={(id) => void eliminarContacto(id)}
                 />
               )}
             </div>
