@@ -1,4 +1,4 @@
-package cl.pago;
+package com.clinica.pago;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
