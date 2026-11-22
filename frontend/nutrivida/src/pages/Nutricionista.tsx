@@ -2,105 +2,86 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { CitaMedica } from './ReservasHoras';
 import type { UsuarioRegistrado } from './RegistroUsuario';
+import { obtenerReservas, cambiarEstadoReserva } from '../services/reservaService';
+import { obtenerUsuarios } from '../services/usuarioService';
+import { crearFicha } from '../services/fichaService';
 
 const Nutricionista: React.FC = () => {
   const navigate = useNavigate();
 
-  const sesionActiva = localStorage.getItem('nutrivida_usuario_activo');
-  const usuarioLogueado = sesionActiva ? JSON.parse(sesionActiva) : null;
+  const sesionGuardada = localStorage.getItem('nutrivida_usuario_activo');
+  const usuarioActivo = sesionGuardada ? JSON.parse(sesionGuardada) : null;
 
-  const nutricionista = usuarioLogueado
+  const datosNutricionista = usuarioActivo
     ? {
-        nombre:
-          `${usuarioLogueado.nombres || ''} ${usuarioLogueado.apellidos || ''}`.trim() ||
-          usuarioLogueado.nombre ||
-          'Profesional NutriVida',
-        run: usuarioLogueado.rut || usuarioLogueado.run || 'Sin RUT',
-        correo: usuarioLogueado.correo || '',
-        rol: usuarioLogueado.especialidad || usuarioLogueado.rol || 'Nutricionista Clínico',
+        nombre: `${usuarioActivo.nombres || ''} ${usuarioActivo.apellidos || ''}`.trim() || 'Profesional NutriVida',
+        rut: usuarioActivo.rut || 'Sin RUT',
+        correo: usuarioActivo.correo || '',
+        rol: usuarioActivo.rol || 'NUTRICIONISTA',
       }
     : null;
 
-  const [citasAgenda, setCitasAgenda] = useState<CitaMedica[]>([]);
+  const [citas, setCitas] = useState<CitaMedica[]>([]);
   const [pacientes, setPacientes] = useState<UsuarioRegistrado[]>([]);
 
-  const [rutFicha, setRutFicha] = useState('');
+  const [rutPaciente, setRutPaciente] = useState('');
   const [pesoKg, setPesoKg] = useState('');
   const [tallaCm, setTallaCm] = useState('');
   const [cinturaCm, setCinturaCm] = useState('');
   const [planAlimenticio, setPlanAlimenticio] = useState('');
-  const [mensajeFicha, setMensajeFicha] = useState('');
+  const [mensajeExito, setMensajeExito] = useState('');
 
   useEffect(() => {
-    if (!sesionActiva) {
+    if (!sesionGuardada) {
       navigate('/login');
       return;
     }
 
-    const rolUpper = String(usuarioLogueado.rol || '').toUpperCase();
-    const esNutri = rolUpper.includes('NUTRI') || rolUpper === 'NUTRICIONISTA';
-
-    if (!esNutri) {
+    const rol = String(usuarioActivo.rol || '').toUpperCase();
+    if (!rol.includes('NUTRI') && rol !== 'NUTRICIONISTA') {
       alert('No tienes permisos de Nutricionista para acceder a esta vista.');
       navigate('/login');
       return;
     }
 
-    const nombreCompleto = `${usuarioLogueado.nombres || ''} ${usuarioLogueado.apellidos || ''}`.trim();
+    const limpiarPrefijoNut = (texto: string) =>
+      texto.replace(/^Nut\.\s*/i, '').trim().toLowerCase();
 
-    fetch('http://localhost:8083/api/reservas')
-      .then((res) => {
-        if (!res.ok) throw new Error('Error al cargar reservas');
-        return res.json();
-      })
+    const nombreNutriSinPrefijo = limpiarPrefijoNut(
+      `${usuarioActivo.nombres || ''} ${usuarioActivo.apellidos || ''}`
+    );
+
+    obtenerReservas()
       .then((todasLasCitas) => {
-        const misCitas = todasLasCitas.filter((c: any) => {
-          if (!c.profesional) return true;
-
-          const profCita = c.profesional.toLowerCase();
-          const profActual = nombreCompleto.toLowerCase();
-          const primerNombre = (usuarioLogueado.nombres || '').toLowerCase();
-
+        const citasDelNutri = todasLasCitas.filter((cita: any) => {
+          if (!cita.profesional) return false;
+          const profesionalCita = limpiarPrefijoNut(cita.profesional);
           return (
-            profCita.includes(profActual) ||
-            profActual.includes(profCita) ||
-            (primerNombre && profCita.includes(primerNombre))
+            profesionalCita.includes(nombreNutriSinPrefijo) ||
+            nombreNutriSinPrefijo.includes(profesionalCita)
           );
         });
-        setCitasAgenda(misCitas);
+        setCitas(citasDelNutri);
       })
-      .catch((error) => console.error('Error en citas:', error));
+      .catch((error) => console.error('Error al cargar citas:', error));
 
-    fetch('http://localhost:8081/api/usuarios')
-      .then((res) => {
-        if (!res.ok) throw new Error('Error al cargar usuarios');
-        return res.json();
-      })
+    obtenerUsuarios()
       .then((todosLosUsuarios: UsuarioRegistrado[]) => {
-        const soloPacientes = todosLosUsuarios.filter(
-          (u) => String(u.rol || '').toUpperCase() === 'PACIENTE' || !u.rol
+        const listaPacientes = todosLosUsuarios.filter(
+          (usuario) => String(usuario.rol || '').toUpperCase() === 'PACIENTE'
         );
-        setPacientes(soloPacientes);
+        setPacientes(listaPacientes);
       })
-      .catch((error) => console.error('Error en pacientes:', error));
-  }, [navigate, sesionActiva]);
+      .catch((error) => console.error('Error al cargar pacientes:', error));
+  }, [navigate, sesionGuardada]);
 
-  const cambiarEstadoCita = async (idCita: string, nuevoEstado: CitaMedica['estado']) => {
+  const actualizarEstadoCita = async (idCita: string, nuevoEstado: CitaMedica['estado']) => {
     try {
-      const respuesta = await fetch(
-        `http://localhost:8083/api/reservas/${idCita}/estado?estado=${nuevoEstado}`,
-        {
-          method: 'PATCH',
-        }
-      );
+      await cambiarEstadoReserva(idCita, nuevoEstado);
 
-      if (!respuesta.ok) {
-        throw new Error('No se pudo actualizar el estado de la cita.');
-      }
-
-      setCitasAgenda((prev) =>
-        prev.map((c) =>
-          String(c.id) === String(idCita) ? { ...c, estado: nuevoEstado } : c
+      setCitas((listaActual) =>
+        listaActual.map((cita) =>
+          String(cita.id) === String(idCita) ? { ...cita, estado: nuevoEstado } : cita
         )
       );
     } catch (error) {
@@ -108,17 +89,17 @@ const Nutricionista: React.FC = () => {
       alert('Error al actualizar el estado de la cita en el servidor.');
     }
   };
-  
-  const handleGuardarFicha = async (e: React.FormEvent<HTMLFormElement>) => {
+
+  const guardarFichaClinica = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setMensajeFicha('');
+    setMensajeExito('');
 
     const peso = parseFloat(pesoKg);
-    const tallaM = parseFloat(tallaCm) / 100;
-    const imc = Number((peso / (tallaM * tallaM)).toFixed(1));
+    const tallaMetros = parseFloat(tallaCm) / 100;
+    const imc = Number((peso / (tallaMetros * tallaMetros)).toFixed(1));
 
     const nuevaFicha = {
-      rutPaciente: rutFicha.replace(/[^0-9kK]/g, '').toUpperCase(),
+      rutPaciente: rutPaciente.replace(/[^0-9kK]/g, '').toUpperCase(),
       fecha: new Date().toISOString().split('T')[0],
       pesoKg: peso,
       tallaCm: parseFloat(tallaCm),
@@ -126,41 +107,30 @@ const Nutricionista: React.FC = () => {
       imc,
       planAlimenticio,
       observaciones: 'Control registrado digitalmente',
-      nutricionista: nutricionista?.nombre || 'Nutricionista',
+      nutricionista: datosNutricionista?.nombre || 'Nutricionista',
     };
 
     try {
-      const respuesta = await fetch('http://localhost:8084/api/fichas', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(nuevaFicha),
-      });
+      await crearFicha(nuevaFicha);
 
-      if (!respuesta.ok) {
-        const errorTexto = await respuesta.text();
-        throw new Error(errorTexto || 'No se pudo guardar la ficha clínica.');
-      }
-
-      setMensajeFicha(`Mediciones y plan guardados para RUT ${nuevaFicha.rutPaciente}`);
+      setMensajeExito(`Mediciones y plan guardados para RUT ${nuevaFicha.rutPaciente}`);
       setPesoKg('');
       setTallaCm('');
       setCinturaCm('');
       setPlanAlimenticio('');
-      setRutFicha('');
+      setRutPaciente('');
     } catch (error: any) {
       console.error('Error al guardar ficha:', error);
-      alert(error.message || 'Error de conexión con el servidor de fichas (puerto 8084).');
+      alert(error.message || 'Error al guardar la ficha clínica.');
     }
   };
 
-  const handleCerrarSesion = () => {
+  const cerrarSesion = () => {
     localStorage.removeItem('nutrivida_usuario_activo');
     navigate('/login');
   };
 
-  if (!nutricionista) return null;
+  if (!datosNutricionista) return null;
 
   return (
     <main>
@@ -176,7 +146,7 @@ const Nutricionista: React.FC = () => {
             <button
               type="button"
               className="btn btn-danger btn-sm rounded-pill px-3"
-              onClick={handleCerrarSesion}
+              onClick={cerrarSesion}
             >
               Cerrar sesión
             </button>
@@ -193,7 +163,7 @@ const Nutricionista: React.FC = () => {
                   type="text"
                   className="form-control"
                   id="perfil-nombre"
-                  value={nutricionista.nombre}
+                  value={datosNutricionista.nombre}
                   readOnly
                 />
               </div>
@@ -203,7 +173,7 @@ const Nutricionista: React.FC = () => {
                   type="text"
                   className="form-control"
                   id="perfil-run"
-                  value={nutricionista.run}
+                  value={datosNutricionista.rut}
                   readOnly
                 />
               </div>
@@ -213,7 +183,7 @@ const Nutricionista: React.FC = () => {
                   type="text"
                   className="form-control"
                   id="perfil-correo"
-                  value={nutricionista.correo}
+                  value={datosNutricionista.correo}
                   readOnly
                 />
               </div>
@@ -223,7 +193,7 @@ const Nutricionista: React.FC = () => {
                   type="text"
                   className="form-control"
                   id="perfil-rol"
-                  value={nutricionista.rol}
+                  value={datosNutricionista.rol}
                   readOnly
                 />
               </div>
@@ -246,14 +216,14 @@ const Nutricionista: React.FC = () => {
                 </tr>
               </thead>
               <tbody id="tabla-citas-nutri">
-                {citasAgenda.length === 0 ? (
+                {citas.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center text-muted py-3">
                       No tienes citas agendadas a tu nombre.
                     </td>
                   </tr>
                 ) : (
-                  citasAgenda.map((cita: any) => (
+                  citas.map((cita: any) => (
                     <tr key={cita.id}>
                       <td>{cita.rutPaciente || cita.rut}</td>
                       <td>{cita.servicio}</td>
@@ -277,14 +247,14 @@ const Nutricionista: React.FC = () => {
                           <button
                             type="button"
                             className="btn btn-success btn-sm"
-                            onClick={() => cambiarEstadoCita(cita.id, 'Confirmada')}
+                            onClick={() => actualizarEstadoCita(cita.id, 'Confirmada')}
                           >
                             Confirmar
                           </button>
                           <button
                             type="button"
                             className="btn btn-outline-danger btn-sm"
-                            onClick={() => cambiarEstadoCita(cita.id, 'Cancelada')}
+                            onClick={() => actualizarEstadoCita(cita.id, 'Cancelada')}
                           >
                             Cancelar
                           </button>
@@ -297,21 +267,20 @@ const Nutricionista: React.FC = () => {
             </table>
           </div>
 
-          {/* Registro de Ficha Clínica Digital */}
           <div className="nv-info-box p-3 rounded mb-5">
             <h4 className="fw-bold mb-3" style={{ color: '#2a492a' }}>
               Registrar Progreso y Plan Alimenticio del Paciente
             </h4>
-            {mensajeFicha && <div className="alert alert-success py-2">{mensajeFicha}</div>}
-            <form className="row g-3" onSubmit={handleGuardarFicha}>
+            {mensajeExito && <div className="alert alert-success py-2">{mensajeExito}</div>}
+            <form className="row g-3" onSubmit={guardarFichaClinica}>
               <div className="col-md-3">
                 <label className="form-label fw-bold">RUT Paciente</label>
                 <input
                   type="text"
                   className="form-control"
-                  value={rutFicha}
-                  onChange={(e) => setRutFicha(e.target.value)}
-                  placeholder="188663338"
+                  value={rutPaciente}
+                  onChange={(e) => setRutPaciente(e.target.value)}
+                  placeholder="128794697"
                   required
                 />
               </div>
@@ -358,7 +327,7 @@ const Nutricionista: React.FC = () => {
                 />
               </div>
               <div className="col-12 text-end">
-                <button type="submit" className="btn btn-success ">
+                <button type="submit" className="btn btn-success">
                   Guardar Ficha Clínica
                 </button>
               </div>
@@ -386,15 +355,17 @@ const Nutricionista: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  pacientes.map((pac) => (
-                    <tr key={pac.rut}>
-                      <td>{pac.rut}</td>
+                  pacientes.map((paciente) => (
+                    <tr key={paciente.rut}>
+                      <td>{paciente.rut}</td>
                       <td>
-                        {pac.nombres} {pac.apellidos}
+                        {paciente.nombres} {paciente.apellidos}
                       </td>
-                      <td>{pac.correo}</td>
+                      <td>{paciente.correo}</td>
                       <td>
-                        {pac.comuna && pac.region ? `${pac.comuna}, ${pac.region}` : 'Sin ubicación'}
+                        {paciente.comuna && paciente.region
+                          ? `${paciente.comuna}, ${paciente.region}`
+                          : 'Sin ubicación'}
                       </td>
                     </tr>
                   ))
