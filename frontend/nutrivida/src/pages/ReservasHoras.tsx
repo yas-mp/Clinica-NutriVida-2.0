@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { LISTA_PROFESIONALES } from './Profesionales';
-import { CATALOGO_SERVICIOS } from './Servicios';
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { listarServicios } from "../services/servicioService";
+import { obtenerNutricionistas } from "../services/usuarioService";
+import {
+  obtenerReservas,
+  crearReserva,
+  actualizarReserva,
+} from "../services/reservaService";
 
 export interface CitaMedica {
   id: string;
@@ -11,132 +16,132 @@ export interface CitaMedica {
   motivo: string;
   fecha: string;
   hora: string;
-  estado: 'Pendiente' | 'Confirmada' | 'Cancelada' | 'Realizada';
+  estado: "Pendiente" | "Confirmada" | "Cancelada" | "Realizada";
   recordatorioEnviado: boolean;
 }
 
-const HORARIOS_DISPONIBLES = ['09:00', '10:00', '11:00', '15:00', '16:00'];
+const HORARIOS = ["09:00", "10:00", "11:00", "15:00", "16:00"];
 
 const ReservasHoras: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const datosPrevios = location.state as any;
 
-  const statePreseleccion = location.state as {
-    profesionalPreseleccionado?: string;
-    servicioPreseleccionado?: string;
-    citaAReprogramar?: CitaMedica;
-  } | null;
+  const [rut, setRut] = useState("");
+  const [servicio, setServicio] = useState("");
+  const [profesional, setProfesional] = useState("");
+  const [motivo, setMotivo] = useState("");
+  const [fecha, setFecha] = useState("");
+  const [hora, setHora] = useState("");
+  const [mensajeOk, setMensajeOk] = useState("");
+  const [mensajeError, setMensajeError] = useState("");
 
-  const [rut, setRut] = useState('');
-  const [servicio, setServicio] = useState('');
-  const [profesional, setProfesional] = useState('');
-  const [motivo, setMotivo] = useState('');
-  const [fecha, setFecha] = useState('');
-  const [hora, setHora] = useState('');
-  const [mensajeConfirmacion, setMensajeConfirmacion] = useState<string>('');
-  const [errorReserva, setErrorReserva] = useState<string>('');
+  const [servicios, setServicios] = useState<any[]>([]);
+  const [nutricionistas, setNutricionistas] = useState<any[]>([]);
+
+  const limpiarRut = (valor: string) =>
+    String(valor || "").replace(/[^0-9kK]/g, "").toUpperCase();
 
   useEffect(() => {
-    const sesionActiva = localStorage.getItem('nutrivida_usuario_activo');
-    if (sesionActiva) {
-      const usuario = JSON.parse(sesionActiva);
-      if (usuario.rut) setRut(usuario.rut);
+    const cargarDatos = async () => {
+      try {
+        const listaServicios = await listarServicios();
+        setServicios(listaServicios);
+
+        const listaNutris = await obtenerNutricionistas();
+        setNutricionistas(listaNutris);
+      } catch (error) {
+        console.error("Error al cargar datos:", error);
+      }
+    };
+
+    cargarDatos();
+  }, []);
+
+  useEffect(() => {
+    const sesion = localStorage.getItem("nutrivida_usuario_activo");
+    if (sesion) {
+      const usuario = JSON.parse(sesion);
+      if (usuario.rut) setRut(limpiarRut(usuario.rut));
     }
 
-    if (statePreseleccion?.profesionalPreseleccionado) {
-      setProfesional(statePreseleccion.profesionalPreseleccionado);
+    if (datosPrevios?.profesionalPreseleccionado) {
+      const nombre = datosPrevios.profesionalPreseleccionado;
+      setProfesional(nombre.startsWith("Nut.") ? nombre : `Nut. ${nombre}`);
     }
-    if (statePreseleccion?.servicioPreseleccionado) {
-      setServicio(statePreseleccion.servicioPreseleccionado);
-    }
-    if (statePreseleccion?.citaAReprogramar) {
-      const c = statePreseleccion.citaAReprogramar;
-      setRut(c.rutPaciente);
-      setServicio(c.servicio);
-      setProfesional(c.profesional);
-      setMotivo(c.motivo || '');
-      setFecha(c.fecha);
-      setHora(c.hora);
-    }
-  }, [statePreseleccion]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    if (datosPrevios?.servicioPreseleccionado) {
+      setServicio(datosPrevios.servicioPreseleccionado);
+    }
+
+    if (datosPrevios?.citaAReprogramar) {
+      const cita = datosPrevios.citaAReprogramar;
+      setRut(limpiarRut(cita.rutPaciente));
+      setServicio(cita.servicio);
+      setProfesional(cita.profesional);
+      setMotivo(cita.motivo || "");
+      setFecha(cita.fecha);
+      setHora(cita.hora);
+    }
+  }, [datosPrevios]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorReserva('');
-    setMensajeConfirmacion('');
+    setMensajeError("");
+    setMensajeOk("");
 
-    const reprogramarCita = Boolean(statePreseleccion?.citaAReprogramar);
+    const citaEditar = datosPrevios?.citaAReprogramar;
 
-    try{
-      const respuestaCitas = await fetch('http://localhost:8083/api/reservas');
-      if(respuestaCitas.ok){
-        const citasExistentes: CitaMedica[] = await respuestaCitas.json();
-        const horarioOcupado = citasExistentes.some(
-          (c) =>
+    try {
+      const citas = await obtenerReservas();
+      const ocupado = citas.some(
+        (c: any) =>
           c.profesional === profesional &&
-          c.fecha == fecha &&
-          c.hora == hora &&
-          c.estado !== 'Cancelada' &&
-          String(c.id) !== String(statePreseleccion?.citaAReprogramar?.id)
-        );
+          c.fecha === fecha &&
+          c.hora === hora &&
+          c.estado !== "Cancelada" &&
+          String(c.id) !== String(citaEditar?.id)
+      );
 
-        if(horarioOcupado){
-          setErrorReserva(
-            `El profesional ${profesional} ya tiene una cita reservada en esa fecha y hora.`
-          );
-          return;
-        }
+      if (ocupado) {
+        setMensajeError(`El profesional ${profesional} ya tiene una hora reservada en ese horario.`);
+        return;
       }
 
-      const datosReserva = {
-        rutPaciente: rut.trim().toUpperCase(),
+      const nuevaCita = {
+        rutPaciente: limpiarRut(rut),
         servicio,
         profesional,
         motivo,
         fecha,
         hora,
-        estado: 'Pendiente',
+        estado: "Pendiente",
         recordatorioEnviado: true,
       };
-      
-      const url = reprogramarCita
-      ? `http://localhost:8083/api/reservas/${statePreseleccion!.citaAReprogramar!.id}`
-      : 'http://localhost:8083/api/reservas';
 
-      const metodo = reprogramarCita ? 'PUT' : 'POST';
-      
-      const respuesta = await fetch(url, {
-        method: metodo,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(datosReserva),
-      });
-
-      if(!respuesta.ok){
-        const errorTexto = await respuesta.text();
-        throw new Error(errorTexto || 'No se pudo guardar la reserva.')
+      if (citaEditar) {
+        await actualizarReserva(citaEditar.id, nuevaCita);
+        setMensajeOk("¡Cita reprogramada con éxito! Volviendo a tu portal...");
+        setTimeout(() => navigate("/usuario"), 1200);
+      } else {
+        const citaGuardada = await crearReserva(nuevaCita);
+        setMensajeOk("¡Reserva confirmada! Redirigiendo al pago...");
+        setTimeout(() => {
+          navigate("/pago", {
+            state: {
+              servicioNombre: servicio,
+              idCita: citaGuardada.id,
+              rutPaciente: citaGuardada.rutPaciente,
+            },
+          });
+        }, 1200);
       }
-
-      const citaGuardada = await respuesta.json()
-
-      setMensajeConfirmacion('¡Reserva confirmada! Redirigiendo al portal de pago...')
-      setTimeout(() => {
-        navigate('/pago', {
-          state: {
-            servicioNombre: servicio,
-            idCita: citaGuardada.id,
-            rutPaciente: citaGuardada.rutPaciente,
-          },
-        });
-      }, 1200);
-    } catch (error: any){
-      console.error('Error en reserva: ', error);
-      setErrorReserva(error.message || 'Error de conexión con el servidor de reservas.')
+    } catch (error: any) {
+      setMensajeError(error.message || "Error al conectar con el servidor.");
     }
-  };  
+  };
 
-  const fechaMinima = new Date().toISOString().split('T')[0];
+  const fechaMinima = new Date().toISOString().split("T")[0];
 
   return (
     <main className="container my-5">
@@ -144,16 +149,17 @@ const ReservasHoras: React.FC = () => {
         id="formulario-reserva"
         onSubmit={handleSubmit}
         className="nv-form-container p-4 mx-auto"
-        style={{ maxWidth: '600px' }}
+        style={{ maxWidth: "600px" }}
       >
-        <h3 className="mb-3 text-center pb-2" style={{ borderBottom: '3px solid #2a492a' }}>
-          {statePreseleccion?.citaAReprogramar ? 'Reprogramar Hora' : 'Agendar Hora'}
+        <h3
+          className="mb-3 text-center pb-2"
+          style={{ borderBottom: "3px solid #2a492a" }}
+        >
+          {datosPrevios?.citaAReprogramar ? "Reprogramar Hora" : "Agendar Hora"}
         </h3>
 
-        {errorReserva && <div className="alert alert-danger py-2">{errorReserva}</div>}
-        {mensajeConfirmacion && (
-          <div className="alert alert-success py-2">{mensajeConfirmacion}</div>
-        )}
+        {mensajeError && <div className="alert alert-danger py-2">{mensajeError}</div>}
+        {mensajeOk && <div className="alert alert-success py-2">{mensajeOk}</div>}
 
         <div className="mb-3">
           <label className="form-label fw-bold">RUT del Paciente</label>
@@ -164,7 +170,7 @@ const ReservasHoras: React.FC = () => {
             placeholder="12345678K"
             value={rut}
             onChange={(e) => setRut(e.target.value)}
-            maxLength={9}
+            maxLength={12}
             required
           />
         </div>
@@ -179,7 +185,7 @@ const ReservasHoras: React.FC = () => {
             required
           >
             <option value="">Seleccione un Servicio...</option>
-            {CATALOGO_SERVICIOS.map((s) => (
+            {servicios.map((s) => (
               <option key={s.id} value={s.nombre}>
                 {s.nombre}
               </option>
@@ -197,9 +203,9 @@ const ReservasHoras: React.FC = () => {
             required
           >
             <option value="">Seleccione un Profesional...</option>
-            {LISTA_PROFESIONALES.map((p) => (
-              <option key={p.id} value={p.nombre}>
-                {p.nombre} — ({p.especialidad})
+            {nutricionistas.map((n) => (
+              <option key={n.id} value={`${n.nombres} ${n.apellidos}`}>
+                {n.nombres} {n.apellidos}
               </option>
             ))}
           </select>
@@ -240,7 +246,7 @@ const ReservasHoras: React.FC = () => {
               required
             >
               <option value="">Seleccione una hora...</option>
-              {HORARIOS_DISPONIBLES.map((h) => (
+              {HORARIOS.map((h) => (
                 <option key={h} value={h}>
                   {h} hrs
                 </option>
