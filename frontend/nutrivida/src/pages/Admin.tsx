@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   TablaPagosAdmin,
   TablaReservasAdmin,
@@ -6,7 +7,13 @@ import {
   TablaUsuariosAdmin,
 } from "../components/organismos/TablasVistaAdmin";
 import { TablaContactosAdmin } from "../components/organismos/TablaContactosAdmin";
-import { useNavigate } from "react-router-dom";
+
+import {
+  obtenerUsuarios,
+  actualizarUsuario,
+  eliminarUsuario,
+} from "../services/usuarioService";
+import { obtenerReservas, cancelarReserva } from "../services/reservaService";
 import {
   actualizarServicio,
   crearServicio,
@@ -20,7 +27,6 @@ import type {
   ServicioRequest,
   TipoServicio,
 } from "../services/servicioService";
-import { resolverImagenServicio } from "../services/servicioImagenes";
 import {
   eliminarMensajeContacto,
   listarMensajesContacto,
@@ -48,7 +54,7 @@ interface FormularioServicio {
   imagen: string;
 }
 
-const FORMULARIO_SERVICIO_VACIO: FormularioServicio = {
+const FORMULARIO_VACIO: FormularioServicio = {
   codigo: "",
   nombre: "",
   tipoId: "",
@@ -63,122 +69,117 @@ const FORMULARIO_SERVICIO_VACIO: FormularioServicio = {
 const MODALIDADES = ["Presencial", "Online", "Presencial (grupo)"];
 
 export const Admin: React.FC = () => {
-  const [listaUsuarios, setListaUsuarios] = useState<any[]>([]);
-  const [listaReservas, setListaReservas] = useState<any[]>([]);
   const navigate = useNavigate();
 
-  const [servicios, setServicios] = useState<ServicioNutricional[]>([]);
+  const [listaUsuarios, setListaUsuarios] = useState<any[]>([]);
+  const [listaReservas, setListaReservas] = useState<any[]>([]);
+  const [listaServicios, setListaServicios] = useState<ServicioNutricional[]>(
+    [],
+  );
   const [tiposServicio, setTiposServicio] = useState<TipoServicio[]>([]);
-  const [cargandoServicios, setCargandoServicios] = useState<boolean>(false);
-  const [cargandoTipos, setCargandoTipos] = useState<boolean>(false);
+  const [listaContactos, setListaContactos] = useState<ContactoMensaje[]>([]);
+  const [listaPagos, setListaPagos] = useState<Pago[]>([]);
+
+  const [cargandoServicios, setCargandoServicios] = useState(false);
+  const [cargandoTipos, setCargandoTipos] = useState(false);
   const [errorServicios, setErrorServicios] = useState<string | null>(null);
   const [mensajeServicios, setMensajeServicios] = useState<string | null>(null);
 
-  const [listaContactos, setListaContactos] = useState<ContactoMensaje[]>([]);
-  const [cargandoContactos, setCargandoContactos] = useState<boolean>(false);
+  const [cargandoContactos, setCargandoContactos] = useState(false);
   const [errorContactos, setErrorContactos] = useState<string | null>(null);
   const [mensajeContactos, setMensajeContactos] = useState<string | null>(null);
 
-  const [listaPagos, setListaPagos] = useState<Pago[]>([]);
-  const [cargandoPagos, setCargandoPagos] = useState<boolean>(false);
+  const [cargandoPagos, setCargandoPagos] = useState(false);
   const [errorPagos, setErrorPagos] = useState<string | null>(null);
   const [mensajePagos, setMensajePagos] = useState<string | null>(null);
 
-  const [mostrarModal, setMostrarModal] = useState<boolean>(false);
-  const [servicioEnEdicion, setServicioEnEdicion] = useState<ServicioNutricional | null>(
-    null,
-  );
-  const [formulario, setFormulario] = useState<FormularioServicio>(
-    FORMULARIO_SERVICIO_VACIO,
-  );
+  const [mostrarModal, setMostrarModal] = useState(false);
+  const [servicioEnEdicion, setServicioEnEdicion] =
+    useState<ServicioNutricional | null>(null);
+  const [formulario, setFormulario] =
+    useState<FormularioServicio>(FORMULARIO_VACIO);
   const [errorFormulario, setErrorFormulario] = useState<string | null>(null);
-  const [guardando, setGuardando] = useState<boolean>(false);
+  const [guardando, setGuardando] = useState(false);
 
-  // 1. Cargar Usuarios desde ms-usuarios (puerto 8081)
-  const cargarUsuarios = useCallback(async () => {
+  const cargarUsuarios = async () => {
     try {
-      const resp = await fetch("http://localhost:8081/api/usuarios");
-      if (!resp.ok) throw new Error("Error al cargar usuarios");
-      const data = await resp.json();
-      setListaUsuarios(data);
+      const usuarios = await obtenerUsuarios();
+      setListaUsuarios(usuarios);
     } catch (error) {
       console.error("Error cargando usuarios:", error);
     }
-  }, []);
+  };
 
-  // 2. Cargar Reservas desde ms-reservas (puerto 8083)
-  const cargarReservas = useCallback(async () => {
+  const cargarReservas = async () => {
     try {
-      const resp = await fetch("http://localhost:8083/api/reservas");
-      if (!resp.ok) throw new Error("Error al cargar reservas");
-      const data = await resp.json();
-      setListaReservas(data);
+      const reservas = await obtenerReservas();
+      setListaReservas(reservas);
     } catch (error) {
       console.error("Error cargando reservas:", error);
     }
-  }, []);
+  };
 
-  const cargarServicios = useCallback(async () => {
+  const cargarServicios = async () => {
     setCargandoServicios(true);
     setErrorServicios(null);
-
     try {
-      setServicios(await listarServicios());
-    } catch (err) {
-      setServicios([]);
-      setErrorServicios(obtenerMensajeError(err));
+      const servicios = await listarServicios();
+      setListaServicios(servicios);
+    } catch (error) {
+      setListaServicios([]);
+      setErrorServicios(obtenerMensajeError(error));
     } finally {
       setCargandoServicios(false);
     }
-  }, []);
+  };
 
-  const cargarTiposServicio = useCallback(async () => {
+  const cargarTiposServicio = async () => {
     setCargandoTipos(true);
-
     try {
-      setTiposServicio(await listarTiposServicio());
-    } catch (err) {
+      const tipos = await listarTiposServicio();
+      setTiposServicio(tipos);
+    } catch (error) {
       setTiposServicio([]);
-      setErrorServicios((previo) => previo ?? obtenerMensajeError(err));
+      setErrorServicios((anterior) => anterior ?? obtenerMensajeError(error));
     } finally {
       setCargandoTipos(false);
     }
-  }, []);
+  };
 
-  const cargarContactos = useCallback(async () => {
+  const cargarContactos = async () => {
     setCargandoContactos(true);
     setErrorContactos(null);
-
     try {
-      setListaContactos(await listarMensajesContacto());
-    } catch (err) {
+      const mensajes = await listarMensajesContacto();
+      setListaContactos(mensajes);
+    } catch (error) {
       setListaContactos([]);
-      setErrorContactos(obtenerMensajeErrorContacto(err));
+      setErrorContactos(obtenerMensajeErrorContacto(error));
     } finally {
       setCargandoContactos(false);
     }
-  }, []);
+  };
 
-  const cargarPagos = useCallback(async () => {
+  const cargarPagos = async () => {
     setCargandoPagos(true);
     setErrorPagos(null);
-
     try {
-      setListaPagos(await listarPagos());
-    } catch (err) {
+      const pagos = await listarPagos();
+      setListaPagos(pagos);
+    } catch (error) {
       setListaPagos([]);
-      setErrorPagos(obtenerMensajeErrorPago(err));
+      setErrorPagos(obtenerMensajeErrorPago(error));
     } finally {
       setCargandoPagos(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    const usuarioActivo = JSON.parse(
+    const sesionGuardada =
       localStorage.getItem("nutrivida_usuario_activo") ||
-        localStorage.getItem("usuario_sesion") ||
-        "null",
-    );
+      localStorage.getItem("usuario_sesion");
+
+    const usuarioActivo = sesionGuardada ? JSON.parse(sesionGuardada) : null;
 
     if (!usuarioActivo) {
       alert("Debes iniciar sesión para acceder al panel de administración.");
@@ -186,112 +187,62 @@ export const Admin: React.FC = () => {
       return;
     }
 
-    const rolUpper = String(usuarioActivo.rol || "").toUpperCase();
-    const esAdmin =
-      rolUpper === "ADMIN" ||
-      rolUpper === "ADMINISTRADOR" ||
-      usuarioActivo.correo?.includes("admin");
-
-    if (!esAdmin) {
+    const rol = String(usuarioActivo.rol || "").toUpperCase();
+    if (rol !== "ADMIN" && rol !== "ADMINISTRADOR") {
       alert("No tienes permisos de administrador para acceder a esta vista.");
       navigate("/login");
       return;
     }
 
-    void cargarUsuarios();
-    void cargarReservas();
-    void cargarServicios();
-    void cargarTiposServicio();
-    void cargarContactos();
-    void cargarPagos();
-  }, [navigate, cargarUsuarios, cargarReservas, cargarServicios, cargarTiposServicio, cargarContactos, cargarPagos]);
+    cargarUsuarios();
+    cargarReservas();
+    cargarServicios();
+    cargarTiposServicio();
+    cargarContactos();
+    cargarPagos();
+  }, [navigate]);
 
-  // 3. Cancelar Reserva en ms-reservas (puerto 8083)
-  const cancelarReserva = async (index: number) => {
-    const reserva = listaReservas[index];
-    if (!reserva) return;
-
-    if (!confirm("¿Estás seguro de cancelar esta reserva?")) return;
-
-    try {
-      const resp = await fetch(
-        `http://localhost:8083/api/reservas/${reserva.id}/estado?estado=Cancelada`,
-        {
-          method: "PUT",
-        },
-      );
-
-      if (!resp.ok) {
-        throw new Error("No se pudo cancelar la reserva en el servidor.");
-      }
-
-      await cargarReservas();
-      alert("Reserva cancelada correctamente.");
-    } catch (error) {
-      console.error("Error al cancelar reserva:", error);
-      alert("Error al cancelar la reserva en el servidor.");
-    }
-  };
-
-  // 4. Cambiar Rol de Usuario en ms-usuarios (puerto 8081)
-  const cambiarRolUsuario = async (pos: number, nRol: string) => {
-    const usuario = listaUsuarios[pos];
+  const manejarCambioRol = async (posicion: number, nuevoRol: string) => {
+    const usuario = listaUsuarios[posicion];
     if (!usuario) return;
 
-    const identificador = usuario.id ?? usuario.rut;
-    const usuarioActualizado = { ...usuario, rol: nRol };
+    const idUsuario = usuario.id ?? usuario.rut;
+    const usuarioActualizado = { ...usuario, rol: nuevoRol };
 
     try {
-      const resp = await fetch(`http://localhost:8081/api/usuarios/${identificador}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(usuarioActualizado),
-      });
+      await actualizarUsuario(idUsuario, usuarioActualizado);
 
-      if (!resp.ok) {
-        throw new Error("No se pudo actualizar el rol.");
-      }
-
-      const usuarioSesion = JSON.parse(
-        localStorage.getItem("nutrivida_usuario_activo") || "null",
-      );
-
-      if (usuarioSesion && usuarioSesion.correo === usuario.correo) {
-        usuarioSesion.rol = nRol;
-        localStorage.setItem(
-          "nutrivida_usuario_activo",
-          JSON.stringify(usuarioSesion),
-        );
+      const sesionGuardada = localStorage.getItem("nutrivida_usuario_activo");
+      if (sesionGuardada) {
+        const usuarioSesion = JSON.parse(sesionGuardada);
+        if (usuarioSesion.correo === usuario.correo) {
+          usuarioSesion.rol = nuevoRol;
+          localStorage.setItem(
+            "nutrivida_usuario_activo",
+            JSON.stringify(usuarioSesion),
+          );
+        }
       }
 
       await cargarUsuarios();
-      alert("Rol cambiado a " + nRol + " exitosamente.");
+      alert("Rol cambiado a " + nuevoRol + " exitosamente.");
     } catch (error) {
       console.error("Error al cambiar rol:", error);
       alert("Error al cambiar el rol en el servidor.");
     }
   };
 
-  // 5. Eliminar Usuario en ms-usuarios (puerto 8081)
-  const eliminarUsuario = async (index: number) => {
-    const usuario = listaUsuarios[index];
+  const manejarEliminarUsuario = async (posicion: number) => {
+    const usuario = listaUsuarios[posicion];
     if (!usuario) return;
 
-    if (!confirm("¿Estás seguro de que deseas eliminar a este usuario?")) return;
+    if (!window.confirm("¿Estás seguro de que deseas eliminar a este usuario?"))
+      return;
 
-    const identificador = usuario.id ?? usuario.rut;
+    const idUsuario = usuario.id ?? usuario.rut;
 
     try {
-      const resp = await fetch(`http://localhost:8081/api/usuarios/${identificador}`, {
-        method: "DELETE",
-      });
-
-      if (!resp.ok) {
-        throw new Error("No se pudo eliminar el usuario.");
-      }
-
+      await eliminarUsuario(idUsuario);
       await cargarUsuarios();
       alert("Usuario eliminado correctamente.");
     } catch (error) {
@@ -300,34 +251,22 @@ export const Admin: React.FC = () => {
     }
   };
 
-  // 6. Modificar Correo de Usuario en ms-usuarios (puerto 8081)
-  const modificarUsuario = async (index: number) => {
-    const user = listaUsuarios[index];
-    if (!user) return;
+  const manejarModificarUsuario = async (posicion: number) => {
+    const usuario = listaUsuarios[posicion];
+    if (!usuario) return;
 
-    const nuevoCorreo = prompt(
+    const nuevoCorreo = window.prompt(
       "Ingrese el nuevo correo electrónico:",
-      user.correo || "",
+      usuario.correo || "",
     );
 
     if (nuevoCorreo === null || nuevoCorreo.trim() === "") return;
 
-    const identificador = user.id ?? user.rut;
-    const usuarioActualizado = { ...user, correo: nuevoCorreo.trim() };
+    const idUsuario = usuario.id ?? usuario.rut;
+    const usuarioActualizado = { ...usuario, correo: nuevoCorreo.trim() };
 
     try {
-      const resp = await fetch(`http://localhost:8081/api/usuarios/${identificador}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(usuarioActualizado),
-      });
-
-      if (!resp.ok) {
-        throw new Error("No se pudo modificar el correo.");
-      }
-
+      await actualizarUsuario(idUsuario, usuarioActualizado);
       await cargarUsuarios();
       alert("Correo actualizado correctamente.");
     } catch (error) {
@@ -336,36 +275,62 @@ export const Admin: React.FC = () => {
     }
   };
 
-  const cambiarCampo = (campo: keyof FormularioServicio, valor: string) => {
-    setFormulario((previo) => ({ ...previo, [campo]: valor }));
+  const manejarCancelarReserva = async (posicion: number) => {
+    const reserva = listaReservas[posicion];
+    if (!reserva) return;
+
+    if (!window.confirm("¿Estás seguro de cancelar esta reserva?")) return;
+
+    try {
+      await cancelarReserva(reserva.id);
+      await cargarReservas();
+      alert("Reserva cancelada correctamente.");
+    } catch (error) {
+      console.error("Error al cancelar reserva:", error);
+      alert("Error al cancelar la reserva en el servidor.");
+    }
+  };
+
+  const cambiarCampoFormulario = (
+    campo: keyof FormularioServicio,
+    valor: string,
+  ) => {
+    setFormulario((anterior) => ({ ...anterior, [campo]: valor }));
   };
 
   const abrirModalCrear = () => {
     setServicioEnEdicion(null);
-    setFormulario(FORMULARIO_SERVICIO_VACIO);
+    setFormulario(FORMULARIO_VACIO);
     setErrorFormulario(null);
     setMostrarModal(true);
   };
 
-  const abrirModalEditar = (id: number) => {
-    const encontrado = servicios.find((servicio) => servicio.id === id);
+  const abrirModalEditar = (idServicio: number) => {
+    const servicioEncontrado = listaServicios.find((s) => s.id === idServicio);
 
-    if (!encontrado) {
-      setErrorServicios("No se encontró el servicio seleccionado en el catálogo.");
+    if (!servicioEncontrado) {
+      setErrorServicios(
+        "No se encontró el servicio seleccionado en el catálogo.",
+      );
       return;
     }
 
-    setServicioEnEdicion(encontrado);
+    setServicioEnEdicion(servicioEncontrado);
     setFormulario({
-      codigo: encontrado.codigo ?? "",
-      nombre: encontrado.nombre ?? "",
-      tipoId: encontrado.tipoId ? String(encontrado.tipoId) : "",
-      duracion: encontrado.duracion ?? "",
-      modalidad: encontrado.modalidad ?? MODALIDADES[0],
-      profesional: encontrado.profesional ?? "",
-      precio: encontrado.precio != null ? String(encontrado.precio) : "",
-      descripcion: encontrado.descripcion ?? "",
-      imagen: encontrado.imagen ?? "",
+      codigo: servicioEncontrado.codigo || "",
+      nombre: servicioEncontrado.nombre || "",
+      tipoId: servicioEncontrado.tipoId
+        ? String(servicioEncontrado.tipoId)
+        : "",
+      duracion: servicioEncontrado.duracion || "",
+      modalidad: servicioEncontrado.modalidad || MODALIDADES[0],
+      profesional: servicioEncontrado.profesional || "",
+      precio:
+        servicioEncontrado.precio != null
+          ? String(servicioEncontrado.precio)
+          : "",
+      descripcion: servicioEncontrado.descripcion || "",
+      imagen: servicioEncontrado.imagen || "",
     });
     setErrorFormulario(null);
     setMostrarModal(true);
@@ -374,27 +339,29 @@ export const Admin: React.FC = () => {
   const cerrarModal = () => {
     setMostrarModal(false);
     setServicioEnEdicion(null);
-    setFormulario(FORMULARIO_SERVICIO_VACIO);
+    setFormulario(FORMULARIO_VACIO);
     setErrorFormulario(null);
   };
 
-  const guardarServicio = async (e: React.FormEvent) => {
+  const manejarGuardarServicio = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const tipoId = Number(formulario.tipoId);
     const precio = Number(formulario.precio);
 
-    if (!formulario.tipoId || !Number.isInteger(tipoId) || tipoId <= 0) {
+    if (!formulario.tipoId || tipoId <= 0) {
       setErrorFormulario("Debes seleccionar un tipo de servicio.");
       return;
     }
 
-    if (!Number.isFinite(precio) || precio < 1000) {
-      setErrorFormulario("El precio debe ser un número mayor o igual a 1000 CLP.");
+    if (isNaN(precio) || precio < 1000) {
+      setErrorFormulario(
+        "El precio debe ser un número mayor o igual a 1000 CLP.",
+      );
       return;
     }
 
-    const dto: ServicioRequest = {
+    const datosServicio: ServicioRequest = {
       codigo: formulario.codigo.trim().toUpperCase(),
       nombre: formulario.nombre.trim(),
       duracion: formulario.duracion.trim(),
@@ -411,64 +378,64 @@ export const Admin: React.FC = () => {
 
     try {
       if (servicioEnEdicion) {
-        await actualizarServicio(servicioEnEdicion.id, dto);
-        setMensajeServicios(`Servicio "${dto.nombre}" actualizado correctamente.`);
+        await actualizarServicio(servicioEnEdicion.id, datosServicio);
+        setMensajeServicios(
+          `Servicio "${datosServicio.nombre}" actualizado correctamente.`,
+        );
       } else {
-        await crearServicio(dto);
-        setMensajeServicios(`Servicio "${dto.nombre}" creado correctamente.`);
+        await crearServicio(datosServicio);
+        setMensajeServicios(
+          `Servicio "${datosServicio.nombre}" creado correctamente.`,
+        );
       }
 
       setErrorServicios(null);
       cerrarModal();
       await cargarServicios();
-    } catch (err) {
-      setErrorFormulario(obtenerMensajeError(err));
+    } catch (error) {
+      setErrorFormulario(obtenerMensajeError(error));
     } finally {
       setGuardando(false);
     }
   };
 
-  const eliminarServicioAdmin = async (id: number) => {
-    if (!confirm("¿Estás seguro de que deseas eliminar este servicio?")) {
+  const manejarEliminarServicio = async (idServicio: number) => {
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este servicio?"))
       return;
-    }
 
     setErrorServicios(null);
-
     try {
-      await eliminarServicio(id);
+      await eliminarServicio(idServicio);
       setMensajeServicios("Servicio eliminado correctamente.");
       await cargarServicios();
-    } catch (err) {
-      setErrorServicios(obtenerMensajeError(err));
+    } catch (error) {
+      setErrorServicios(obtenerMensajeError(error));
     }
   };
 
-  const marcarLeidoContacto = async (id: number, leido: boolean) => {
+  const manejarMarcarLeido = async (idContacto: number, leido: boolean) => {
     setErrorContactos(null);
     setMensajeContactos(null);
-
     try {
-      await marcarMensajeLeido(id, leido);
+      await marcarMensajeLeido(idContacto, leido);
       setMensajeContactos(
-        leido ? "Mensaje marcado como leído." : "Mensaje marcado como no leído.",
+        leido
+          ? "Mensaje marcado como leído."
+          : "Mensaje marcado como no leído.",
       );
       await cargarContactos();
-    } catch (err) {
-      setErrorContactos(obtenerMensajeErrorContacto(err));
+    } catch (error) {
+      setErrorContactos(obtenerMensajeErrorContacto(error));
     }
   };
 
-  const responderContacto = async (contacto: ContactoMensaje) => {
-    const respuesta = prompt(
+  const manejarResponderContacto = async (contacto: ContactoMensaje) => {
+    const respuesta = window.prompt(
       `Respuesta para ${contacto.nombre} (${contacto.correo}):`,
-      contacto.respuesta ?? "",
+      contacto.respuesta || "",
     );
 
-    if (respuesta === null) {
-      return;
-    }
-
+    if (respuesta === null) return;
     if (!respuesta.trim()) {
       alert("La respuesta no puede estar vacía.");
       return;
@@ -481,42 +448,43 @@ export const Admin: React.FC = () => {
       await responderMensajeContacto(contacto.id, respuesta.trim());
       setMensajeContactos(`Respuesta registrada para ${contacto.nombre}.`);
       await cargarContactos();
-    } catch (err) {
-      setErrorContactos(obtenerMensajeErrorContacto(err));
+    } catch (error) {
+      setErrorContactos(obtenerMensajeErrorContacto(error));
     }
   };
 
-  const eliminarContacto = async (id: number) => {
-    if (!confirm("¿Estás seguro de que deseas eliminar este mensaje de contacto?")) {
+  const manejarEliminarContacto = async (idContacto: number) => {
+    if (
+      !window.confirm(
+        "¿Estás seguro de que deseas eliminar este mensaje de contacto?",
+      )
+    )
       return;
-    }
 
     setErrorContactos(null);
     setMensajeContactos(null);
 
     try {
-      await eliminarMensajeContacto(id);
+      await eliminarMensajeContacto(idContacto);
       setMensajeContactos("Mensaje de contacto eliminado correctamente.");
       await cargarContactos();
-    } catch (err) {
-      setErrorContactos(obtenerMensajeErrorContacto(err));
+    } catch (error) {
+      setErrorContactos(obtenerMensajeErrorContacto(error));
     }
   };
 
-  const anularPagoAdmin = async (id: number) => {
-    if (!confirm("¿Estás seguro de anular este pago?")) {
-      return;
-    }
+  const manejarAnularPago = async (idPago: number) => {
+    if (!window.confirm("¿Estás seguro de anular este pago?")) return;
 
     setErrorPagos(null);
     setMensajePagos(null);
 
     try {
-      await anularPago(id);
+      await anularPago(idPago);
       setMensajePagos("Pago anulado correctamente.");
       await cargarPagos();
-    } catch (err) {
-      setErrorPagos(obtenerMensajeErrorPago(err));
+    } catch (error) {
+      setErrorPagos(obtenerMensajeErrorPago(error));
     }
   };
 
@@ -526,6 +494,8 @@ export const Admin: React.FC = () => {
     alert("Has cerrado sesión correctamente.");
     navigate("/login");
   };
+
+  const mensajesNoLeidos = listaContactos.filter((c) => !c.leido).length;
 
   return (
     <div className="bg-light bg-admin min-vh-100">
@@ -593,7 +563,9 @@ export const Admin: React.FC = () => {
             >
               Pagos Registrados
               {listaPagos.length > 0 && (
-                <span className="badge bg-success ms-2">{listaPagos.length}</span>
+                <span className="badge bg-success ms-2">
+                  {listaPagos.length}
+                </span>
               )}
             </button>
           </li>
@@ -604,38 +576,39 @@ export const Admin: React.FC = () => {
               data-bs-target="#sec-contactos"
             >
               Mensajes de Contacto
-              {listaContactos.filter((contacto) => !contacto.leido).length > 0 && (
-                <span className="badge bg-danger ms-2">
-                  {listaContactos.filter((contacto) => !contacto.leido).length}
-                </span>
+              {mensajesNoLeidos > 0 && (
+                <span className="badge bg-danger ms-2">{mensajesNoLeidos}</span>
               )}
             </button>
           </li>
         </ul>
 
         <div className="tab-content">
+          {/* Pestaña Usuarios */}
           <div className="tab-pane fade show active" id="sec-usuarios">
             <div className="card p-3 shadow-sm">
               <h4 className="m-0 mb-3">Gestión de Usuarios</h4>
               <TablaUsuariosAdmin
                 listaUsuarios={listaUsuarios}
-                onCambiarRol={cambiarRolUsuario}
-                onEliminarUsuario={eliminarUsuario}
-                onModificarUsuario={modificarUsuario}
+                onCambiarRol={manejarCambioRol}
+                onEliminarUsuario={manejarEliminarUsuario}
+                onModificarUsuario={manejarModificarUsuario}
               />
             </div>
           </div>
 
+          {/* Pestaña Reservas */}
           <div className="tab-pane fade" id="sec-reservas">
             <div className="card p-3 shadow-sm">
               <h4 className="m-0 mb-3">Gestión de Reservas</h4>
               <TablaReservasAdmin
                 listaReservas={listaReservas}
-                onCancelarReserva={cancelarReserva}
+                onCancelarReserva={manejarCancelarReserva}
               />
             </div>
           </div>
 
+          {/* Pestaña Pagos */}
           <div className="tab-pane fade" id="sec-pagos">
             <div className="card p-3 shadow-sm">
               <div className="d-flex justify-content-between align-items-center mb-3">
@@ -643,7 +616,7 @@ export const Admin: React.FC = () => {
                 <button
                   type="button"
                   className="btn btn-outline-success btn-sm"
-                  onClick={() => void cargarPagos()}
+                  onClick={cargarPagos}
                   disabled={cargandoPagos}
                 >
                   {cargandoPagos ? "Actualizando..." : "Actualizar"}
@@ -651,40 +624,37 @@ export const Admin: React.FC = () => {
               </div>
 
               {errorPagos && (
-                <div className="alert alert-danger" role="alert">
-                  {errorPagos}
-                </div>
+                <div className="alert alert-danger">{errorPagos}</div>
               )}
 
               {mensajePagos && (
-                <div
-                  className="alert alert-success d-flex justify-content-between align-items-center"
-                  role="status"
-                >
+                <div className="alert alert-success d-flex justify-content-between align-items-center">
                   <span>{mensajePagos}</span>
                   <button
                     type="button"
                     className="btn-close"
-                    aria-label="Cerrar mensaje"
                     onClick={() => setMensajePagos(null)}
                   ></button>
                 </div>
               )}
 
               {cargandoPagos ? (
-                <div className="text-center py-4" role="status" aria-live="polite">
-                  <div className="spinner-border text-success" aria-hidden="true"></div>
-                  <p className="text-muted mt-3 mb-0">Cargando pagos registrados...</p>
+                <div className="text-center py-4">
+                  <div className="spinner-border text-success"></div>
+                  <p className="text-muted mt-3 mb-0">
+                    Cargando pagos registrados...
+                  </p>
                 </div>
               ) : (
                 <TablaPagosAdmin
                   listaPagos={listaPagos}
-                  onAnularPago={(id) => void anularPagoAdmin(id)}
+                  onAnularPago={manejarAnularPago}
                 />
               )}
             </div>
           </div>
 
+          {/* Pestaña Servicios */}
           <div className="tab-pane fade" id="sec-servicios">
             <div className="card p-3 shadow-sm">
               <div className="d-flex justify-content-between align-items-center mb-3">
@@ -693,7 +663,7 @@ export const Admin: React.FC = () => {
                   <button
                     type="button"
                     className="btn btn-outline-success btn-sm"
-                    onClick={() => void cargarServicios()}
+                    onClick={cargarServicios}
                     disabled={cargandoServicios}
                   >
                     {cargandoServicios ? "Actualizando..." : "Actualizar"}
@@ -710,41 +680,36 @@ export const Admin: React.FC = () => {
               </div>
 
               {errorServicios && (
-                <div className="alert alert-danger" role="alert">
-                  {errorServicios}
-                </div>
+                <div className="alert alert-danger">{errorServicios}</div>
               )}
 
               {mensajeServicios && (
-                <div
-                  className="alert alert-success d-flex justify-content-between align-items-center"
-                  role="status"
-                >
+                <div className="alert alert-success d-flex justify-content-between align-items-center">
                   <span>{mensajeServicios}</span>
                   <button
                     type="button"
                     className="btn-close"
-                    aria-label="Cerrar mensaje"
                     onClick={() => setMensajeServicios(null)}
                   ></button>
                 </div>
               )}
 
               {cargandoServicios ? (
-                <div className="text-center py-4" role="status" aria-live="polite">
-                  <div className="spinner-border text-success" aria-hidden="true"></div>
+                <div className="text-center py-4">
+                  <div className="spinner-border text-success"></div>
                   <p className="text-muted mt-3 mb-0">Cargando servicios...</p>
                 </div>
               ) : (
                 <TablaServiciosAdmin
-                  servicios={servicios}
-                  onEliminarServicio={eliminarServicioAdmin}
+                  servicios={listaServicios}
+                  onEliminarServicio={manejarEliminarServicio}
                   onModificarServicio={abrirModalEditar}
                 />
               )}
             </div>
           </div>
 
+          {/* Pestaña Contactos */}
           <div className="tab-pane fade" id="sec-contactos">
             <div className="card p-3 shadow-sm">
               <div className="d-flex justify-content-between align-items-center mb-3">
@@ -752,7 +717,7 @@ export const Admin: React.FC = () => {
                 <button
                   type="button"
                   className="btn btn-outline-success btn-sm"
-                  onClick={() => void cargarContactos()}
+                  onClick={cargarContactos}
                   disabled={cargandoContactos}
                 >
                   {cargandoContactos ? "Actualizando..." : "Actualizar"}
@@ -760,37 +725,33 @@ export const Admin: React.FC = () => {
               </div>
 
               {errorContactos && (
-                <div className="alert alert-danger" role="alert">
-                  {errorContactos}
-                </div>
+                <div className="alert alert-danger">{errorContactos}</div>
               )}
 
               {mensajeContactos && (
-                <div
-                  className="alert alert-success d-flex justify-content-between align-items-center"
-                  role="status"
-                >
+                <div className="alert alert-success d-flex justify-content-between align-items-center">
                   <span>{mensajeContactos}</span>
                   <button
                     type="button"
                     className="btn-close"
-                    aria-label="Cerrar mensaje"
                     onClick={() => setMensajeContactos(null)}
                   ></button>
                 </div>
               )}
 
               {cargandoContactos ? (
-                <div className="text-center py-4" role="status" aria-live="polite">
-                  <div className="spinner-border text-success" aria-hidden="true"></div>
-                  <p className="text-muted mt-3 mb-0">Cargando mensajes de contacto...</p>
+                <div className="text-center py-4">
+                  <div className="spinner-border text-success"></div>
+                  <p className="text-muted mt-3 mb-0">
+                    Cargando mensajes de contacto...
+                  </p>
                 </div>
               ) : (
                 <TablaContactosAdmin
                   listaContactos={listaContactos}
-                  onMarcarLeido={(id, leido) => void marcarLeidoContacto(id, leido)}
-                  onResponder={(contacto) => void responderContacto(contacto)}
-                  onEliminar={(id) => void eliminarContacto(id)}
+                  onMarcarLeido={manejarMarcarLeido}
+                  onResponder={manejarResponderContacto}
+                  onEliminar={manejarEliminarContacto}
                 />
               )}
             </div>
@@ -798,32 +759,28 @@ export const Admin: React.FC = () => {
         </div>
       </main>
 
+      {/* Modal Crear / Editar Servicio */}
       {mostrarModal && (
         <>
-          <div
-            className="modal fade show d-block"
-            tabIndex={-1}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="tituloModalServicio"
-          >
+          <div className="modal fade show d-block" tabIndex={-1}>
             <div className="modal-dialog modal-lg">
               <div className="modal-content">
                 <div className="modal-header bg-dark text-white">
-                  <h5 className="modal-title" id="tituloModalServicio">
-                    {servicioEnEdicion ? "Editar Servicio" : "Crear Nuevo Servicio"}
+                  <h5 className="modal-title">
+                    {servicioEnEdicion
+                      ? "Editar Servicio"
+                      : "Crear Nuevo Servicio"}
                   </h5>
                   <button
                     type="button"
                     className="btn-close btn-close-white"
-                    aria-label="Cerrar"
                     onClick={cerrarModal}
                   ></button>
                 </div>
-                <form onSubmit={guardarServicio}>
+                <form onSubmit={manejarGuardarServicio}>
                   <div className="modal-body">
                     {errorFormulario && (
-                      <div className="alert alert-danger" role="alert">
+                      <div className="alert alert-danger">
                         {errorFormulario}
                       </div>
                     )}
@@ -839,12 +796,16 @@ export const Admin: React.FC = () => {
                           className="form-control"
                           placeholder="Ej: CN006"
                           value={formulario.codigo}
-                          onChange={(e) => cambiarCampo("codigo", e.target.value)}
+                          onChange={(e) =>
+                            cambiarCampoFormulario("codigo", e.target.value)
+                          }
                           minLength={5}
                           maxLength={10}
                           required
                         />
-                        <div className="form-text">Entre 5 y 10 caracteres.</div>
+                        <div className="form-text">
+                          Entre 5 y 10 caracteres.
+                        </div>
                       </div>
                       <div className="col-md-8 mb-2">
                         <label className="form-label" htmlFor="servicioNombre">
@@ -855,7 +816,9 @@ export const Admin: React.FC = () => {
                           type="text"
                           className="form-control"
                           value={formulario.nombre}
-                          onChange={(e) => cambiarCampo("nombre", e.target.value)}
+                          onChange={(e) =>
+                            cambiarCampoFormulario("nombre", e.target.value)
+                          }
                           maxLength={100}
                           required
                         />
@@ -871,7 +834,9 @@ export const Admin: React.FC = () => {
                           id="servicioTipo"
                           className="form-select"
                           value={formulario.tipoId}
-                          onChange={(e) => cambiarCampo("tipoId", e.target.value)}
+                          onChange={(e) =>
+                            cambiarCampoFormulario("tipoId", e.target.value)
+                          }
                           required
                         >
                           <option value="">Seleccione un tipo...</option>
@@ -883,7 +848,10 @@ export const Admin: React.FC = () => {
                         </select>
                       </div>
                       <div className="col-md-3 mb-2">
-                        <label className="form-label" htmlFor="servicioDuracion">
+                        <label
+                          className="form-label"
+                          htmlFor="servicioDuracion"
+                        >
                           Duración
                         </label>
                         <input
@@ -892,20 +860,27 @@ export const Admin: React.FC = () => {
                           className="form-control"
                           placeholder="Ej: 50 minutos"
                           value={formulario.duracion}
-                          onChange={(e) => cambiarCampo("duracion", e.target.value)}
+                          onChange={(e) =>
+                            cambiarCampoFormulario("duracion", e.target.value)
+                          }
                           maxLength={30}
                           required
                         />
                       </div>
                       <div className="col-md-3 mb-2">
-                        <label className="form-label" htmlFor="servicioModalidad">
+                        <label
+                          className="form-label"
+                          htmlFor="servicioModalidad"
+                        >
                           Modalidad
                         </label>
                         <select
                           id="servicioModalidad"
                           className="form-select"
                           value={formulario.modalidad}
-                          onChange={(e) => cambiarCampo("modalidad", e.target.value)}
+                          onChange={(e) =>
+                            cambiarCampoFormulario("modalidad", e.target.value)
+                          }
                           required
                         >
                           {MODALIDADES.map((modalidad) => (
@@ -919,7 +894,10 @@ export const Admin: React.FC = () => {
 
                     <div className="row">
                       <div className="col-md-8 mb-2">
-                        <label className="form-label" htmlFor="servicioProfesional">
+                        <label
+                          className="form-label"
+                          htmlFor="servicioProfesional"
+                        >
                           Profesional
                         </label>
                         <input
@@ -928,7 +906,12 @@ export const Admin: React.FC = () => {
                           className="form-control"
                           placeholder="Ej: Nut. Carolina Fuentes"
                           value={formulario.profesional}
-                          onChange={(e) => cambiarCampo("profesional", e.target.value)}
+                          onChange={(e) =>
+                            cambiarCampoFormulario(
+                              "profesional",
+                              e.target.value,
+                            )
+                          }
                           maxLength={50}
                           required
                         />
@@ -944,52 +927,49 @@ export const Admin: React.FC = () => {
                           min={1000}
                           step={1}
                           value={formulario.precio}
-                          onChange={(e) => cambiarCampo("precio", e.target.value)}
+                          onChange={(e) =>
+                            cambiarCampoFormulario("precio", e.target.value)
+                          }
                           required
                         />
                       </div>
                     </div>
 
                     <div className="mb-2">
-                      <label className="form-label" htmlFor="servicioDescripcion">
+                      <label
+                        className="form-label"
+                        htmlFor="servicioDescripcion"
+                      >
                         Descripción
                       </label>
                       <textarea
                         id="servicioDescripcion"
                         className="form-control"
-                        rows={3}
+                        rows={2}
                         value={formulario.descripcion}
-                        onChange={(e) => cambiarCampo("descripcion", e.target.value)}
-                        maxLength={300}
+                        onChange={(e) =>
+                          cambiarCampoFormulario("descripcion", e.target.value)
+                        }
                         required
-                      ></textarea>
+                      />
                     </div>
 
                     <div className="mb-2">
                       <label className="form-label" htmlFor="servicioImagen">
-                        Imagen
+                        Ruta de Imagen
                       </label>
                       <input
                         id="servicioImagen"
                         type="text"
                         className="form-control"
-                        placeholder="../images/primera-consulta.jpg"
                         value={formulario.imagen}
-                        onChange={(e) => cambiarCampo("imagen", e.target.value)}
-                        maxLength={255}
-                        required
-                      />
-                      <div className="form-text">
-                        Ruta relativa a las imágenes del catálogo o URL completa.
-                      </div>
-                      <img
-                        src={resolverImagenServicio(formulario.imagen)}
-                        alt="Vista previa del servicio"
-                        className="rounded border mt-2"
-                        style={{ height: "80px", objectFit: "cover" }}
+                        onChange={(e) =>
+                          cambiarCampoFormulario("imagen", e.target.value)
+                        }
                       />
                     </div>
                   </div>
+
                   <div className="modal-footer">
                     <button
                       type="button"
@@ -1011,7 +991,7 @@ export const Admin: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="modal-backdrop fade show" onClick={cerrarModal}></div>
+          <div className="modal-backdrop fade show"></div>
         </>
       )}
     </div>

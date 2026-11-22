@@ -3,7 +3,7 @@ import CampoCorreo from "../moleculas/CampoCorreo";
 import CampoContrasena from "../moleculas/CampoContrasena";
 import Boton from "../atomos/Boton";
 import { Link, useNavigate } from "react-router-dom";
-import { LISTADO_PROFESIONALES } from "../data/ListadoProfesionales";
+import { iniciarSesion } from "../../services/usuarioService";
 
 function FormularioLogin() {
   const [correo, setCorreo] = useState("");
@@ -35,75 +35,24 @@ function FormularioLogin() {
 
     const correoLimpio = correo.trim().toLowerCase();
 
-    if (
-      correoLimpio === "prueba@admin.cl" ||
-      (correoLimpio.includes("admin") && contrasena === "1234")
-    ) {
-      const sesionAdmin = {
-        nombres: "Administrador",
-        apellidos: "NutriVida",
-        rut: "111111111",
-        correo: correoLimpio,
-        rol: "ADMINISTRADOR",
-      };
-      localStorage.setItem("usuario_sesion", JSON.stringify(sesionAdmin));
-      localStorage.setItem("nutrivida_usuario_activo", JSON.stringify(sesionAdmin));
-      navigate("/admin");
-      return;
-    }
-
-    const profesionalEncontrado = LISTADO_PROFESIONALES.find(
-      (p) => p.correo.toLowerCase() === correoLimpio && p.clave === contrasena
-    );
-
-    if (profesionalEncontrado) {
-      const sesionNutri = {
-        nombres: profesionalEncontrado.nombre,
-        apellidos: profesionalEncontrado.apellidos,
-        rut: profesionalEncontrado.rut || "15432987K",
-        correo: profesionalEncontrado.correo,
-        especialidad: profesionalEncontrado.especialidad,
-        rol: "NUTRICIONISTA",
-      };
-      localStorage.setItem("nutrivida_usuario_activo", JSON.stringify(sesionNutri));
-      navigate("/nutricionista");
-      return;
-    }
-
     try {
-      const respuesta = await fetch("http://localhost:8081/api/usuarios/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          correo: correoLimpio,
-          password: contrasena,
-        }),
-      });
+      const usuarioLogueado = await iniciarSesion(correoLimpio, contrasena);
 
-      if (!respuesta.ok) {
-        alert("Correo o contraseña incorrectos. Por favor verifica tus datos.");
-        return;
-      }
+      localStorage.setItem("nutrivida_usuario_activo", JSON.stringify(usuarioLogueado));
 
-      const usuarioLogeado = await respuesta.json();
-      const { clave,password, ...usuarioSinClave } = usuarioLogeado;
+      const rol = String(usuarioLogueado.rol || "").toUpperCase();
 
-      localStorage.setItem("nutrivida_usuario_activo", JSON.stringify(usuarioSinClave));
-
-      const rolUpper = String(usuarioSinClave.rol || "").toUpperCase();
-
-      if (rolUpper.includes("ADMIN")) {
+      if (rol.includes("ADMIN")) {
+        localStorage.setItem("usuario_sesion", JSON.stringify(usuarioLogueado));
         navigate("/admin");
-      } else if (rolUpper.includes("NUTRI")) {
+      } else if (rol.includes("NUTRI")) {
         navigate("/nutricionista");
       } else {
         navigate("/usuario");
       }
-    } catch (error) {
-      console.error("Error en inicio de sesión: ", error);
-      alert("Error de conexión con el servidor de usuarios...");
+    } catch (error: any) {
+      console.error("Error en inicio de sesión:", error);
+      alert(error.message || "Correo o contraseña incorrectos. Por favor verifica tus datos.");
     }
   };
 
