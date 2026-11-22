@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import type { CitaMedica } from './ReservasHoras';
 import type { UsuarioRegistrado } from './RegistroUsuario';
+import { obtenerReservas, cancelarReserva } from '../services/reservaService';
 import {
   listarPagosPorRut,
   listarPagosPorUsuario,
@@ -10,30 +11,17 @@ import {
 } from '../services/pagoService';
 import type { Pago } from '../services/pagoService';
 
-function formatearFechaPago(fecha: string | null): string {
-  if (!fecha) {
-    return '—';
-  }
-
+function formatearFecha(fecha: string | null): string {
+  if (!fecha) return '—';
   const [anio, mes, dia] = fecha.split('T')[0].split('-');
-  if (anio && mes && dia) {
-    return `${dia}-${mes}-${anio}`;
-  }
-
-  return fecha;
+  return anio && mes && dia ? `${dia}-${mes}-${anio}` : fecha;
 }
 
-function claseEstadoPago(estado: string): string {
-  switch (estado) {
-    case 'Aprobado':
-      return 'badge bg-success';
-    case 'Pendiente':
-      return 'badge bg-warning text-dark';
-    case 'Rechazado':
-      return 'badge bg-danger';
-    default:
-      return 'badge bg-secondary';
-  }
+function obtenerColorEstadoPago(estado: string): string {
+  if (estado === 'Aprobado') return 'badge bg-success';
+  if (estado === 'Pendiente') return 'badge bg-warning text-dark';
+  if (estado === 'Rechazado') return 'badge bg-danger';
+  return 'badge bg-secondary';
 }
 
 export interface MedicionClinica {
@@ -52,169 +40,112 @@ export interface MedicionClinica {
 const Usuario: React.FC = () => {
   const navigate = useNavigate();
 
-  const [paciente, setPaciente] = useState<UsuarioRegistrado | null>(() => {
-    const sesionActiva = localStorage.getItem('nutrivida_usuario_activo');
-    return sesionActiva ? JSON.parse(sesionActiva) : null;
+  const [usuarioActivo, setUsuarioActivo] = useState<UsuarioRegistrado | null>(() => {
+    const sesionGuardada = localStorage.getItem('nutrivida_usuario_activo');
+    return sesionGuardada ? JSON.parse(sesionGuardada) : null;
   });
 
-  const [misCitas, setMisCitas] = useState<CitaMedica[]>([]);
-  const [misMediciones, setMisMediciones] = useState<MedicionClinica[]>([]);
-  const [misPagos, setMisPagos] = useState<Pago[]>([]);
-  const [cargandoPagos, setCargandoPagos] = useState<boolean>(false);
+  const [citas, setCitas] = useState<CitaMedica[]>([]);
+  const [fichasClinicas, setFichasClinicas] = useState<MedicionClinica[]>([]);
+  const [pagos, setPagos] = useState<Pago[]>([]);
+  const [cargandoPagos, setCargandoPagos] = useState(false);
   const [errorPagos, setErrorPagos] = useState<string | null>(null);
 
   useEffect(() => {
-    const sesionStr = localStorage.getItem('nutrivida_usuario_activo');
+    const sesionGuardada = localStorage.getItem('nutrivida_usuario_activo');
 
-    if (!sesionStr) {
+    if (!sesionGuardada) {
       navigate('/login');
       return;
     }
 
-    const userObj: UsuarioRegistrado = JSON.parse(sesionStr);
-    setPaciente(userObj);
-    const rutActual = userObj.rut;
+    const datosUsuario: UsuarioRegistrado = JSON.parse(sesionGuardada);
+    setUsuarioActivo(datosUsuario);
 
-    const rolUpper = String(userObj.rol || '').toUpperCase();
-    if (rolUpper.includes('NUTRI') || rolUpper === 'NUTRICIONISTA') {
+    const rol = String(datosUsuario.rol || '').toUpperCase();
+    if (rol.includes('NUTRI') || rol === 'NUTRICIONISTA') {
       navigate('/nutricionista');
       return;
     }
 
-    const limpiarRut = (r: string) =>
-      String(r || '')
-        .replace(/[^0-9kK]/g, '')
-        .toUpperCase();
-    const rutActualLimpio = limpiarRut(rutActual);
+    const limpiarRut = (rut: string) =>
+      String(rut || '').replace(/[^0-9kK]/g, '').toUpperCase();
 
-    // 1. GET Citas desde ms-reservas (puerto 8083)
-    fetch('http://localhost:8083/api/reservas')
-      .then((res) => {
-        if (!res.ok) throw new Error('Error al cargar reservas');
-        return res.json();
-      })
+    const rutPaciente = limpiarRut(datosUsuario.rut);
+
+    // Cargar las citas del paciente
+    obtenerReservas()
       .then((todasLasCitas) => {
-        const citasFiltradas = todasLasCitas.filter(
-          (c: any) =>
-            limpiarRut(c.rutPaciente) === rutActualLimpio ||
-            limpiarRut(c.rut) === rutActualLimpio
+        const citasDelPaciente = todasLasCitas.filter(
+          (cita: any) =>
+            limpiarRut(cita.rutPaciente) === rutPaciente ||
+            limpiarRut(cita.rut) === rutPaciente
         );
-        setMisCitas(citasFiltradas);
+        setCitas(citasDelPaciente);
       })
-      .catch((error) => console.error('Error en citas:', error));
+      .catch((error) => console.error('Error al cargar citas:', error));
 
-    // 2. GET Fichas Médicas desde ms-fichas (puerto 8084)
+    // Cargar las fichas médicas del paciente
     fetch('http://localhost:8084/api/fichas')
       .then((res) => {
         if (!res.ok) throw new Error('Error al cargar fichas');
         return res.json();
       })
       .then((todasLasFichas) => {
-        const fichasPaciente = todasLasFichas.filter(
-          (f: any) => limpiarRut(f.rutPaciente) === rutActualLimpio
+        const fichasDelPaciente = todasLasFichas.filter(
+          (ficha: any) => limpiarRut(ficha.rutPaciente) === rutPaciente
         );
-        setMisMediciones(fichasPaciente);
+        setFichasClinicas(fichasDelPaciente);
       })
-      .catch((error) => console.error('Error en fichas:', error));
+      .catch((error) => console.error('Error al cargar fichas:', error));
   }, [navigate]);
 
   useEffect(() => {
-    if (!paciente) {
-      return;
-    }
+    if (!usuarioActivo) return;
 
-    let activo = true;
+    let componenteMontado = true;
 
-    const cargarPagos = async () => {
+    const cargarHistorialPagos = async () => {
       setCargandoPagos(true);
       setErrorPagos(null);
 
       try {
-        const usuarioId = obtenerUsuarioIdSesion();
-        const pagos = usuarioId
-          ? await listarPagosPorUsuario(usuarioId)
-          : await listarPagosPorRut(paciente.rut);
+        const idUsuario = obtenerUsuarioIdSesion();
+        const listaPagos = idUsuario
+          ? await listarPagosPorUsuario(idUsuario)
+          : await listarPagosPorRut(usuarioActivo.rut);
 
-        if (activo) {
-          setMisPagos(pagos);
+        if (componenteMontado) {
+          setPagos(listaPagos);
         }
-      } catch (err) {
-        if (activo) {
-          setMisPagos([]);
-          setErrorPagos(obtenerMensajeErrorPago(err));
+      } catch (error) {
+        if (componenteMontado) {
+          setPagos([]);
+          setErrorPagos(obtenerMensajeErrorPago(error));
         }
       } finally {
-        if (activo) {
+        if (componenteMontado) {
           setCargandoPagos(false);
         }
       }
     };
 
-    void cargarPagos();
+    cargarHistorialPagos();
 
     return () => {
-      activo = false;
+      componenteMontado = false;
     };
-  }, [paciente]);
+  }, [usuarioActivo]);
 
-  useEffect(() => {
-    if (!paciente) {
-      return;
-    }
-
-    let activo = true;
-
-    const cargarPagos = async () => {
-      setCargandoPagos(true);
-      setErrorPagos(null);
-
-      try {
-        const usuarioId = obtenerUsuarioIdSesion();
-        const pagos = usuarioId
-          ? await listarPagosPorUsuario(usuarioId)
-          : await listarPagosPorRut(paciente.rut);
-
-        if (activo) {
-          setMisPagos(pagos);
-        }
-      } catch (err) {
-        if (activo) {
-          setMisPagos([]);
-          setErrorPagos(obtenerMensajeErrorPago(err));
-        }
-      } finally {
-        if (activo) {
-          setCargandoPagos(false);
-        }
-      }
-    };
-
-    void cargarPagos();
-
-    return () => {
-      activo = false;
-    };
-  }, [paciente]);
-
-  // 3. PUT para cancelar cita en ms-reservas (puerto 8083)
-  const handleCancelarCita = async (idCita: string) => {
+  const anularCita = async (idCita: string) => {
     if (!window.confirm('¿Seguro que deseas cancelar esta cita?')) return;
 
     try {
-      const respuesta = await fetch(
-        `http://localhost:8083/api/reservas/${idCita}/estado?estado=Cancelada`,
-        {
-          method: 'PUT',
-        }
-      );
+      await cancelarReserva(idCita);
 
-      if (!respuesta.ok) {
-        throw new Error('No se pudo cancelar la cita en el servidor');
-      }
-
-      setMisCitas((prevCitas) =>
-        prevCitas.map((c) =>
-          String(c.id) === String(idCita) ? { ...c, estado: 'Cancelada' } : c
+      setCitas((listaActual) =>
+        listaActual.map((cita) =>
+          String(cita.id) === String(idCita) ? { ...cita, estado: 'Cancelada' } : cita
         )
       );
       alert('Cita cancelada correctamente');
@@ -224,14 +155,14 @@ const Usuario: React.FC = () => {
     }
   };
 
-  const handleCerrarSesion = () => {
+  const cerrarSesion = () => {
     localStorage.removeItem('nutrivida_usuario_activo');
     navigate('/login');
   };
 
-  const ultimaMedicion = misMediciones[misMediciones.length - 1];
+  const ultimaFicha = fichasClinicas[fichasClinicas.length - 1];
 
-  if (!paciente) return null;
+  if (!usuarioActivo) return null;
 
   return (
     <main>
@@ -247,7 +178,7 @@ const Usuario: React.FC = () => {
             <button
               type="button"
               className="btn btn-danger btn-sm rounded-pill px-3"
-              onClick={handleCerrarSesion}
+              onClick={cerrarSesion}
             >
               Cerrar sesión
             </button>
@@ -264,7 +195,7 @@ const Usuario: React.FC = () => {
                   type="text"
                   className="form-control"
                   id="perfil-nombre"
-                  value={`${paciente.nombres} ${paciente.apellidos}`.trim()}
+                  value={`${usuarioActivo.nombres} ${usuarioActivo.apellidos}`.trim()}
                   readOnly
                 />
               </div>
@@ -274,7 +205,7 @@ const Usuario: React.FC = () => {
                   type="text"
                   className="form-control"
                   id="perfil-run"
-                  value={paciente.rut}
+                  value={usuarioActivo.rut}
                   readOnly
                 />
               </div>
@@ -284,7 +215,7 @@ const Usuario: React.FC = () => {
                   type="text"
                   className="form-control"
                   id="perfil-correo"
-                  value={paciente.correo}
+                  value={usuarioActivo.correo}
                   readOnly
                 />
               </div>
@@ -294,26 +225,30 @@ const Usuario: React.FC = () => {
                   type="text"
                   className="form-control"
                   id="perfil-ubicacion"
-                  value={paciente.comuna && paciente.region ? `${paciente.comuna}, ${paciente.region}` : ''}
+                  value={
+                    usuarioActivo.comuna && usuarioActivo.region
+                      ? `${usuarioActivo.comuna}, ${usuarioActivo.region}`
+                      : ''
+                  }
                   readOnly
                 />
               </div>
             </div>
           </div>
 
-          {ultimaMedicion && (
+          {ultimaFicha && (
             <div className="nv-info-box mb-4 p-3 rounded">
               <h4 className="fw-bold mb-2" style={{ color: '#2a492a' }}>
                 Mi Plan Alimenticio y Progreso Clínico
               </h4>
               <p className="mb-2">
-                <strong>Plan Vigente:</strong> {ultimaMedicion.planAlimenticio}
+                <strong>Plan Vigente:</strong> {ultimaFicha.planAlimenticio}
               </p>
               <div className="d-flex flex-wrap gap-3 small text-muted">
-                <span><strong>Último Peso:</strong> {ultimaMedicion.pesoKg} kg</span>
-                <span><strong>Talla:</strong> {ultimaMedicion.tallaCm} cm</span>
-                <span><strong>Cintura:</strong> {ultimaMedicion.cinturaCm} cm</span>
-                <span><strong>IMC:</strong> {ultimaMedicion.imc}</span>
+                <span><strong>Último Peso:</strong> {ultimaFicha.pesoKg} kg</span>
+                <span><strong>Talla:</strong> {ultimaFicha.tallaCm} cm</span>
+                <span><strong>Cintura:</strong> {ultimaFicha.cinturaCm} cm</span>
+                <span><strong>IMC:</strong> {ultimaFicha.imc}</span>
               </div>
             </div>
           )}
@@ -340,14 +275,14 @@ const Usuario: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {misCitas.length === 0 ? (
+                {citas.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center text-muted py-3">
                       No tienes citas registradas.
                     </td>
                   </tr>
                 ) : (
-                  misCitas.map((cita) => (
+                  citas.map((cita) => (
                     <tr key={cita.id}>
                       <td>{cita.servicio}</td>
                       <td>{cita.profesional}</td>
@@ -383,7 +318,7 @@ const Usuario: React.FC = () => {
                             <button
                               type="button"
                               className="btn btn-outline-danger btn-sm"
-                              onClick={() => handleCancelarCita(cita.id)}
+                              onClick={() => anularCita(cita.id)}
                             >
                               Cancelar
                             </button>
@@ -431,20 +366,20 @@ const Usuario: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {misPagos.length === 0 ? (
+                  {pagos.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="text-center text-muted py-3">
                         No tienes pagos registrados.
                       </td>
                     </tr>
                   ) : (
-                    misPagos.map((pago) => (
+                    pagos.map((pago) => (
                       <tr key={pago.id}>
                         <td>
                           <strong>{pago.numeroComprobante}</strong>
                         </td>
                         <td className="text-nowrap">
-                          {formatearFechaPago(pago.fechaPago)}
+                          {formatearFecha(pago.fechaPago)}
                         </td>
                         <td>
                           {pago.servicioNombre}
@@ -456,7 +391,9 @@ const Usuario: React.FC = () => {
                           <div className="small text-muted">**** {pago.ultimos4Digitos}</div>
                         </td>
                         <td>
-                          <span className={claseEstadoPago(pago.estado)}>{pago.estado}</span>
+                          <span className={obtenerColorEstadoPago(pago.estado)}>
+                            {pago.estado}
+                          </span>
                         </td>
                       </tr>
                     ))
