@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/organismos/Navbar';
 import Footer from './components/organismos/Footer';
+import { RutaProtegida } from './components/RutaProtegida';
 
 import Inicio from './pages/Inicio';
 import Nosotros from './pages/Nosotros';
@@ -34,7 +35,6 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/contacto" element={<Contacto />} />
         <Route path="/blog" element={<Blog />} />
-        <Route path="/admin" element={<Admin />} />
         <Route path="/profesionales" element={<Profesionales />} />
         <Route path="/servicios" element={<Servicios />} />
         <Route path="/servicios/:id" element={<DetalleServicio />} />
@@ -43,8 +43,31 @@ function App() {
         <Route path="/registro-usuario" element={<RegistroUsuario />} />
         <Route path="/reservas-horas" element={<ReservasHoras />} />
         <Route path="/pago" element={<Pago />} />
-        <Route path="/usuario" element={<Usuario />} />
-        <Route path="/nutricionista" element={<Nutricionista />} />
+
+        <Route
+          path="/admin"
+          element={
+            <RutaProtegida rolPermitido="ADMIN">
+              <Admin />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/nutricionista"
+          element={
+            <RutaProtegida rolPermitido="NUTRI">
+              <Nutricionista />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/usuario"
+          element={
+            <RutaProtegida rolPermitido="PACIENTE">
+              <Usuario />
+            </RutaProtegida>
+          }
+        />
       </Routes>
 
       <Footer />
