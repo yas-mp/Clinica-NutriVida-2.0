@@ -123,6 +123,7 @@ function FormularioContacto(){
                 etiqueta="Correo electrónico"
                 tipo="email"
                 nombre="correo"
+                placeHolder="juan@gmail.com"
                 valor={correo}
                 maxLength={100}
                 alCambiar={setCorreo}
@@ -135,14 +136,19 @@ function FormularioContacto(){
             </div>    
                 
             <div className="col-12">
-                <CampoFormulario
-                etiqueta="Comentarios"
-                tipo="text"
-                nombre="comentarios"
-                placeholder="Máximo 500 caracteres"
-                valor={mensaje}
-                maxLength={500}
-                alCambiar={setMensaje}
+                <label htmlFor="comentarios" className="form-label fw-bold">
+                    Comentarios
+                </label>
+                <textarea
+                    id="comentarios"
+                    name="comentarios"
+                    className="form-control"
+                    rows={5}
+                    placeholder="Máximo 500 caracteres"
+                    value={mensaje}
+                    maxLength={500}
+                    onChange={(e) => setMensaje(e.target.value)}
+                    style={{ resize: "vertical" }}
                 />
                 <p className="form-text text-end mb-0">{mensaje.length}/500</p>
                 {errores.mensaje && (
