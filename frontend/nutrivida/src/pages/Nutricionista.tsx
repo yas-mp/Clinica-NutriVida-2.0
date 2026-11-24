@@ -289,6 +289,8 @@ const Nutricionista: React.FC = () => {
                 <input
                   type="number"
                   step="0.1"
+                  min="20"
+                  max="350"
                   className="form-control"
                   value={pesoKg}
                   onChange={(e) => setPesoKg(e.target.value)}
@@ -299,6 +301,9 @@ const Nutricionista: React.FC = () => {
                 <label className="form-label fw-bold">Talla (cm)</label>
                 <input
                   type="number"
+                  step="0.1"
+                  min="50"
+                  max="250"
                   className="form-control"
                   value={tallaCm}
                   onChange={(e) => setTallaCm(e.target.value)}
@@ -309,7 +314,9 @@ const Nutricionista: React.FC = () => {
                 <label className="form-label fw-bold">Cintura (cm)</label>
                 <input
                   type="number"
-                  step="0.5"
+                  step="0.1"
+                  min="30"
+                  max="250"
                   className="form-control"
                   value={cinturaCm}
                   onChange={(e) => setCinturaCm(e.target.value)}
