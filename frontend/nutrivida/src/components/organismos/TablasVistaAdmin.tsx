@@ -6,6 +6,7 @@ import type { Pago } from "../../services/pagoService";
 interface TablaUsuariosProps {
   listaUsuarios: any[];
   onCambiarRol: (index: number, nuevoRol: string) => void;
+  onCambiarEstadoUsuario: (index: number) => void;
   onEliminarUsuario: (index: number) => void;
   onModificarUsuario: (index: number) => void;
 }
@@ -13,6 +14,7 @@ interface TablaUsuariosProps {
 export const TablaUsuariosAdmin: React.FC<TablaUsuariosProps> = ({
   listaUsuarios,
   onCambiarRol,
+  onCambiarEstadoUsuario,
   onEliminarUsuario,
   onModificarUsuario,
 }) => {
@@ -33,13 +35,14 @@ export const TablaUsuariosAdmin: React.FC<TablaUsuariosProps> = ({
             <th>Correo</th>
             <th>Dirección</th>
             <th>Rol</th>
+            <th>Estado</th>
             <th>Acción</th>
           </tr>
         </thead>
         <tbody>
           {listaUsuarios.length === 0 ? (
             <tr>
-              <td colSpan={6} className="text-center py-3">
+              <td colSpan={7} className="text-center py-3">
                 No hay usuarios registrados.
               </td>
             </tr>
@@ -48,9 +51,13 @@ export const TablaUsuariosAdmin: React.FC<TablaUsuariosProps> = ({
               const nombreCompleto =
                 `${user.nombre || user.nombres || ""} ${user.apellidos || ""}`.trim();
               const rolSeleccionado = normalizarRol(user.rol);
+              const estaActivo = user.activo !== false;
 
               return (
-                <tr key={user.id ?? user.rut ?? i}>
+                <tr
+                  key={user.id ?? user.rut ?? i}
+                  className={!estaActivo ? "table-secondary text-muted" : ""}
+                >
                   <td>
                     <strong>{user.rut || user.run || "N/A"}</strong>
                   </td>
@@ -71,15 +78,27 @@ export const TablaUsuariosAdmin: React.FC<TablaUsuariosProps> = ({
                     </select>
                   </td>
                   <td>
+                    <span
+                      className={`badge ${estaActivo ? "bg-success" : "bg-secondary"}`}
+                    >
+                      {estaActivo ? "Activo" : "Inactivo"}
+                    </span>
+                  </td>
+                  <td className="text-nowrap">
                     <Boton
-                      label="Eliminar"
-                      className="btn btn-danger btn-sm me-1"
-                      onClick={() => onEliminarUsuario(i)}
+                      label={estaActivo ? "Desactivar" : "Reactivar"}
+                      className={`btn btn-sm me-1 ${estaActivo ? "btn-outline-secondary" : "btn-success"}`}
+                      onClick={() => onCambiarEstadoUsuario(i)}
                     />
                     <Boton
                       label="Modificar"
-                      className="btn btn-warning btn-sm"
+                      className="btn btn-warning btn-sm me-1"
                       onClick={() => onModificarUsuario(i)}
+                    />
+                    <Boton
+                      label="Eliminar"
+                      className="btn btn-danger btn-sm"
+                      onClick={() => onEliminarUsuario(i)}
                     />
                   </td>
                 </tr>

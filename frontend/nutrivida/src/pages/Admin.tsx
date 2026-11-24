@@ -11,6 +11,8 @@ import { TablaContactosAdmin } from "../components/organismos/TablaContactosAdmi
 import {
   obtenerUsuarios,
   actualizarUsuario,
+  cambiarRolUsuario,
+  cambiarEstadoUsuario,
   eliminarUsuario,
 } from "../services/usuarioService";
 import { obtenerReservas, cancelarReserva } from "../services/reservaService";
@@ -207,10 +209,9 @@ export const Admin: React.FC = () => {
     if (!usuario) return;
 
     const idUsuario = usuario.id ?? usuario.rut;
-    const usuarioActualizado = { ...usuario, rol: nuevoRol };
 
     try {
-      await actualizarUsuario(idUsuario, usuarioActualizado);
+      await cambiarRolUsuario(idUsuario, nuevoRol);
 
       const sesionGuardada = localStorage.getItem("nutrivida_usuario_activo");
       if (sesionGuardada) {
@@ -232,11 +233,39 @@ export const Admin: React.FC = () => {
     }
   };
 
+  const manejarCambiarEstadoUsuario = async (posicion: number) => {
+    const usuario = listaUsuarios[posicion];
+    if (!usuario) return;
+
+    const nuevoEstado = usuario.activo === false ? true : false;
+    const accion = nuevoEstado ? "reactivar" : "desactivar";
+
+    if (!window.confirm(`¿Estás seguro de que deseas ${accion} a este usuario?`))
+      return;
+
+    const idUsuario = usuario.id ?? usuario.rut;
+
+    try {
+      await cambiarEstadoUsuario(idUsuario, nuevoEstado);
+      await cargarUsuarios();
+      alert(
+        `Usuario ${nuevoEstado ? "reactivado" : "desactivado"} correctamente.`,
+      );
+    } catch (error) {
+      console.error("Error al cambiar estado del usuario:", error);
+      alert("Error al actualizar el estado del usuario en el servidor.");
+    }
+  };
+
   const manejarEliminarUsuario = async (posicion: number) => {
     const usuario = listaUsuarios[posicion];
     if (!usuario) return;
 
-    if (!window.confirm("¿Estás seguro de que deseas eliminar a este usuario?"))
+    if (
+      !window.confirm(
+        "¿Estás seguro de que deseas ELIMINAR definitivamente a este usuario?",
+      )
+    )
       return;
 
     const idUsuario = usuario.id ?? usuario.rut;
@@ -244,10 +273,12 @@ export const Admin: React.FC = () => {
     try {
       await eliminarUsuario(idUsuario);
       await cargarUsuarios();
-      alert("Usuario eliminado correctamente.");
+      alert("Usuario eliminado definitivamente.");
     } catch (error) {
       console.error("Error al eliminar usuario:", error);
-      alert("Error al eliminar el usuario en el servidor.");
+      alert(
+        "No se pudo eliminar el usuario (puede tener reservas o pagos asociados).",
+      );
     }
   };
 
@@ -591,6 +622,7 @@ export const Admin: React.FC = () => {
               <TablaUsuariosAdmin
                 listaUsuarios={listaUsuarios}
                 onCambiarRol={manejarCambioRol}
+                onCambiarEstadoUsuario={manejarCambiarEstadoUsuario}
                 onEliminarUsuario={manejarEliminarUsuario}
                 onModificarUsuario={manejarModificarUsuario}
               />
