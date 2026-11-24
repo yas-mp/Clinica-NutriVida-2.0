@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -225,6 +226,62 @@ public class UsuarioController {
         );
         return ResponseEntity.ok(usuario);
     }
-    
+    @Operation(
+        summary = "Cambiar rol de un usuario",
+        description = "Actualiza de forma parcial el rol asignado a un usuario existente (1: Administrador, 2: Nutricionista, 3: Paciente) sin modificar sus datos personales ni su contraseña."
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "Rol actualizado correctamente",
+            content = @Content(
+                mediaType = MediaType.APPLICATION_JSON_VALUE,
+                schema = @Schema(implementation = UsuarioResponseDTO.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Parámetros inválidos (ID de usuario o rolId con formato incorrecto)",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Usuario o rol no encontrado en la base de datos",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)
+        )
+    })
+    @PatchMapping("/{id}/rol")
+    public ResponseEntity<UsuarioResponseDTO> cambiarRol(
+        @Parameter(
+            description = "ID único del usuario a actualizar",
+            example = "7",
+            required = true
+        )
+        @PathVariable Long id,
+        @Parameter(
+            description = "ID del nuevo rol a asignar (1: Admin, 2: Nutricionista, 3: Paciente)",
+            example = "2",
+            required = true
+        )
+        @RequestParam Long rolId) {
+        logger.debug("PATCH /api/usuarios/{}/rol - Nuevo rolId={}", id, rolId);
+        return ResponseEntity.ok(usuarioService.cambiarRol(id, rolId));
+    }
+    @Operation(
+        summary = "Eliminar usuario definitivamente",
+        description = "Elimina el registro del usuario de la base de datos por su ID."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "Usuario eliminado correctamente"),
+        @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
+    })
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminarUsuario(
+        @Parameter(description = "ID del usuario a eliminar", example = "7", required = true)
+        @PathVariable Long id) {
+        logger.debug("DELETE /api/usuarios/{} - Eliminando usuario", id);
+        usuarioService.eliminarUsuario(id);
+        return ResponseEntity.noContent().build();
+    }
     
 }
