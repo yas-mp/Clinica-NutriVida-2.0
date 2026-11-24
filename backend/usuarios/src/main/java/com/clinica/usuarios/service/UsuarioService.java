@@ -149,4 +149,27 @@ public class UsuarioService {
 
         return mapToDTO(usuario);
     }
+
+    @Transactional
+    public UsuarioResponseDTO cambiarRol(Long id, Long rolId) {
+        logger.info("Cambiando rol del usuario ID {} a rolId={}", id, rolId);
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + id));
+
+        RolUsuario nuevoRol = rolUsuarioRepository.findById(rolId)
+                .orElseThrow(() -> new RuntimeException("Rol no encontrado con ID: " + rolId));
+
+        usuario.setRol(nuevoRol);
+        Usuario actualizado = usuarioRepository.save(usuario);
+        return mapToDTO(actualizado);
+    }
+    @Transactional
+    public void eliminarUsuario(Long id) {
+        logger.info("Eliminando físicamente usuario con ID: {}", id);
+        if (!usuarioRepository.existsById(id)) {
+            throw new RuntimeException("Usuario no encontrado con ID: " + id);
+        }
+        usuarioRepository.deleteById(id);
+    }
+    
 }
